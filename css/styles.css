@@ -31,7 +31,8 @@ body {
 
 /* Header */
 .app-header {
-  background: var(--navy);
+  background: #ffffff;
+  border-bottom: 3px solid var(--orange);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -48,12 +49,13 @@ body {
 }
 
 .app-header__logo {
-  height: 32px;
+  height: 40px;
+  width: auto;
   display: block;
 }
 
 .app-header__status {
-  color: #cfe0f0;
+  color: var(--text-muted);
   font-size: 0.78rem;
   white-space: nowrap;
 }
