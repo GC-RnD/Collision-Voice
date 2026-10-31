@@ -198,13 +198,17 @@ function renderObservation(obs, index) {
     setStatus("Tagging photo location…");
     try {
       const location = await getCurrentLocation();
+      setStatus("Draft saved locally");
+      // Review each captured photo full-screen (Save keeps it + offers Camera Roll / Files save; Delete discards it).
       for (const file of files) {
         const rawDataUrl = await fileToDataUrl(file);
         const stampedDataUrl = await stampPhotoWithLocation(rawDataUrl, location);
+        const keep = await reviewCapturedPhoto(stampedDataUrl, file.name);
+        if (!keep) continue;
         obs.photos.push({ id: uid(), name: file.name, dataUrl: stampedDataUrl, location });
+        renderThumbs(thumbsEl, obs);
+        scheduleAutosave();
       }
-      renderThumbs(thumbsEl, obs);
-      scheduleAutosave();
     } finally {
       photoInput.value = "";
       photoInput.disabled = false;
@@ -270,15 +274,63 @@ function fileToDataUrl(file) {
 
 // ---------- Photo lightbox ----------
 
+let lightboxReviewing = false; // true while a just-captured photo awaits Save/Delete (blocks dismiss-without-choosing)
+
 function openLightbox(src, altText) {
+  lightboxReviewing = false;
   el("lightboxImg").src = src;
   el("lightboxImg").alt = altText || "";
+  el("lightboxClose").hidden = false;
+  el("lightboxReviewActions").hidden = true;
   el("photoLightbox").hidden = false;
 }
 
+/** Shows a just-captured photo full-screen and resolves true/false once the user taps Save or Delete. */
+function reviewCapturedPhoto(dataUrl, fileName) {
+  return new Promise((resolve) => {
+    lightboxReviewing = true;
+    el("lightboxImg").src = dataUrl;
+    el("lightboxImg").alt = "New photo preview";
+    el("lightboxClose").hidden = true;
+    el("lightboxReviewActions").hidden = false;
+    el("photoLightbox").hidden = false;
+
+    const saveBtn = el("lightboxSave");
+    const deleteBtn = el("lightboxDelete");
+    const finish = async (keep) => {
+      saveBtn.removeEventListener("click", onSave);
+      deleteBtn.removeEventListener("click", onDelete);
+      lightboxReviewing = false;
+      closeLightbox();
+      if (keep) await saveToDevice(dataUrl, fileName);
+      resolve(keep);
+    };
+    const onSave = () => finish(true);
+    const onDelete = () => finish(false);
+    saveBtn.addEventListener("click", onSave);
+    deleteBtn.addEventListener("click", onDelete);
+  });
+}
+
 function closeLightbox() {
+  if (lightboxReviewing) return; // force an explicit Save/Delete choice
   el("photoLightbox").hidden = true;
   el("lightboxImg").src = "";
+}
+
+/** Offers to hand the photo to the OS share sheet so it can be saved to Photos/Camera Roll or Files. */
+async function saveToDevice(dataUrl, fileName) {
+  try {
+    const blob = await (await fetch(dataUrl)).blob();
+    const file = new File([blob], fileName || `collision-voice-${Date.now()}.jpg`, {
+      type: blob.type || "image/jpeg",
+    });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: "Collision Voice photo" });
+    }
+  } catch (err) {
+    if (err && err.name !== "AbortError") console.warn("Could not offer to save photo to device", err);
+  }
 }
 
 function bindLightbox() {

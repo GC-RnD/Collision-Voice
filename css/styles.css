@@ -390,6 +390,22 @@ body {
   background: rgba(255, 255, 255, 0.3);
 }
 
+.lightbox__review {
+  position: absolute;
+  bottom: 1.25rem;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0 1rem;
+}
+
+.lightbox__review .btn {
+  min-width: 120px;
+  justify-content: center;
+}
+
 /* Footer action bar */
 .app-footer {
   position: fixed;
