@@ -1,5 +1,5 @@
 // Collision Voice — minimal app-shell cache for installability/offline start.
-const CACHE_NAME = "collision-voice-shell-v6";
+const CACHE_NAME = "collision-voice-shell-v7";
 const APP_SHELL = [
   "./",
   "./index.html",

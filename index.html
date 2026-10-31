@@ -92,11 +92,13 @@
               <span class="observation__index"></span>
               <select data-field="area" aria-label="Vehicle area of damage"></select>
             </label>
-            <label class="observation__approve">
-              <input type="checkbox" data-field="approved" />
-              Approved
-            </label>
-            <button type="button" class="btn btn--ghost btn--danger" data-action="remove">Remove</button>
+            <div class="observation__actions">
+              <label class="observation__approve">
+                <input type="checkbox" data-field="approved" />
+                Approved
+              </label>
+              <button type="button" class="btn btn--ghost btn--danger" data-action="remove">Remove</button>
+            </div>
           </header>
 
           <div class="observation__body">
