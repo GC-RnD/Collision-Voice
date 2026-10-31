@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 200" width="900" height="200">
+  <!-- Collision Voice full lockup: icon badge + wordmark, flat wireframe style -->
+  <g transform="translate(10,10)">
+    <rect x="0" y="0" width="180" height="180" rx="38" fill="none" stroke="#10243E" stroke-width="11"/>
+    <g stroke="#10243E" stroke-width="11" stroke-linecap="round">
+      <line x1="57" y1="88" x2="57" y2="112"/>
+      <line x1="82" y1="65" x2="82" y2="135"/>
+      <line x1="107" y1="77" x2="107" y2="123"/>
+    </g>
+    <g stroke="#E8601C" stroke-width="11" stroke-linecap="round">
+      <line x1="132" y1="53" x2="132" y2="147"/>
+      <line x1="157" y1="80" x2="157" y2="120"/>
+    </g>
+  </g>
+  <text x="222" y="123" font-family="Arial, Helvetica, sans-serif" font-size="74" font-weight="700" letter-spacing="1" fill="#10243E">COLLISION</text>
+  <text x="222" y="176" font-family="Arial, Helvetica, sans-serif" font-size="74" font-weight="700" letter-spacing="6" fill="#E8601C">VOICE</text>
+</svg>

@@ -1,0 +1,16 @@
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Editor/IDE
+.vscode/*
+!.vscode/extensions.json
+
+# Future backend/tooling (not used yet, but safe to ignore if added)
+node_modules/
+.env
+.env.*
+__pycache__/
+*.pyc
+dist/
+build/

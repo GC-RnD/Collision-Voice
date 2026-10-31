@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Collision Voice</title>
+  <meta name="description" content="Voice-narrated vehicle damage inspection and photo capture." />
+  <meta name="theme-color" content="#10243E" />
+
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-header__inner">
+      <img class="app-header__logo" src="icons/logo-full.png" alt="Collision Voice" />
+      <span class="app-header__status" id="syncStatus">Draft saved locally</span>
+    </div>
+  </header>
+
+  <main class="app-main">
+
+    <!-- Work file -->
+    <section class="card" aria-labelledby="workfile-heading">
+      <h2 id="workfile-heading">Work File</h2>
+      <div class="field-grid">
+        <label class="field">
+          <span>Assignment / Claim #</span>
+          <input type="text" id="assignmentId" placeholder="e.g. CV-2026-0417" />
+        </label>
+        <label class="field">
+          <span>Inspector</span>
+          <input type="text" id="inspectorName" placeholder="Your name" />
+        </label>
+        <label class="field">
+          <span>Status</span>
+          <select id="workfileStatus">
+            <option value="draft">Draft</option>
+            <option value="in-review">In review</option>
+            <option value="approved">Approved</option>
+          </select>
+        </label>
+      </div>
+
+      <h3>Vehicle</h3>
+      <div class="field-grid">
+        <label class="field">
+          <span>Year</span>
+          <input type="text" inputmode="numeric" id="vehicleYear" placeholder="2024" />
+        </label>
+        <label class="field">
+          <span>Make</span>
+          <input type="text" id="vehicleMake" placeholder="Honda" />
+        </label>
+        <label class="field">
+          <span>Model</span>
+          <input type="text" id="vehicleModel" placeholder="Civic" />
+        </label>
+        <label class="field">
+          <span>VIN</span>
+          <input type="text" id="vehicleVin" placeholder="17-character VIN" maxlength="17" />
+        </label>
+        <label class="field">
+          <span>License plate</span>
+          <input type="text" id="vehiclePlate" placeholder="ABC-1234" />
+        </label>
+        <label class="field">
+          <span>Color</span>
+          <input type="text" id="vehicleColor" placeholder="Silver" />
+        </label>
+      </div>
+    </section>
+
+    <!-- Observations -->
+    <section class="card" aria-labelledby="observations-heading">
+      <div class="card__row-between">
+        <h2 id="observations-heading">Observations</h2>
+        <button type="button" class="btn btn--primary" id="addObservationBtn">+ Add observation</button>
+      </div>
+      <p class="hint">Each observation pairs one or more photos with a spoken (or typed) note about the damage.</p>
+
+      <div id="observationList" class="observation-list"></div>
+
+      <template id="observationTemplate">
+        <article class="observation" data-observation>
+          <header class="observation__header">
+            <span class="observation__index"></span>
+            <label class="observation__approve">
+              <input type="checkbox" data-field="approved" />
+              Approved
+            </label>
+            <button type="button" class="btn btn--ghost btn--danger" data-action="remove">Remove</button>
+          </header>
+
+          <div class="observation__body">
+            <div class="observation__photos">
+              <div class="photo-thumbs" data-photo-thumbs></div>
+              <label class="btn btn--secondary photo-add">
+                📷 Add photo
+                <input type="file" accept="image/*" capture="environment" multiple data-field="photos" hidden />
+              </label>
+            </div>
+
+            <div class="observation__voice">
+              <button type="button" class="btn btn--record" data-action="record">
+                <span class="record-dot"></span>
+                <span data-record-label>Record narration</span>
+              </button>
+              <button type="button" class="btn btn--secondary" data-action="transcribe" data-transcribe-btn disabled>
+                <span data-transcribe-label>Transcribe</span>
+              </button>
+              <audio controls data-audio-player hidden></audio>
+            </div>
+
+            <label class="field">
+              <span>Transcript / notes</span>
+              <textarea rows="3" data-field="transcript" placeholder="Type notes here (speech-to-text comes in a later phase)"></textarea>
+            </label>
+
+            <div class="ai-suggestion" data-ai-suggestion>
+              <span class="ai-suggestion__label">AI suggestion</span>
+              <span class="ai-suggestion__text">Not available yet — this phase uses manual transcript entry only.</span>
+            </div>
+          </div>
+        </article>
+      </template>
+    </section>
+
+  </main>
+
+  <footer class="app-footer">
+    <div class="app-footer__inner">
+      <button type="button" class="btn btn--secondary" id="saveDraftBtn">Save draft</button>
+      <button type="button" class="btn btn--secondary" id="exportJsonBtn">Export JSON</button>
+      <button type="button" class="btn btn--primary" id="printReportBtn">Print report</button>
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

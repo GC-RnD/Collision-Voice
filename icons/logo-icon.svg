@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Collision Voice mark: flat wireframe/geometric style (AT&T / IBM-like) -->
+  <!-- Outer monoline square badge -->
+  <rect x="24" y="24" width="464" height="464" rx="96" fill="none" stroke="#10243E" stroke-width="28"/>
+  <!-- Voice waveform bars, center-aligned, varying heights -->
+  <g stroke="#10243E" stroke-width="28" stroke-linecap="round">
+    <line x1="146" y1="226" x2="146" y2="286"/>
+    <line x1="210" y1="166" x2="210" y2="346"/>
+    <line x1="274" y1="196" x2="274" y2="316"/>
+  </g>
+  <!-- Orange accent bar represents the "spoken" peak -->
+  <g stroke="#E8601C" stroke-width="28" stroke-linecap="round">
+    <line x1="338" y1="136" x2="338" y2="376"/>
+    <line x1="402" y1="206" x2="402" y2="306"/>
+  </g>
+</svg>
