@@ -392,7 +392,7 @@ async function stampPhotoWithLocation(dataUrl, location) {
     new Date().toLocaleString(),
   ];
 
-  const fontSize = Math.max(16, Math.round(canvas.width * 0.028));
+  const fontSize = Math.max(11, Math.round(canvas.width * 0.016));
   ctx.font = `600 ${fontSize}px -apple-system, Segoe UI, Roboto, Arial, sans-serif`;
   ctx.textBaseline = "top";
   const padding = fontSize * 0.6;
