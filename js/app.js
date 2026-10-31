@@ -21,8 +21,29 @@ function createEmptyState() {
 }
 
 function createEmptyObservation() {
-  return { id: uid(), approved: false, transcript: "", photos: [], audio: null };
+  return { id: uid(), area: "", approved: false, transcript: "", photos: [], audio: null };
 }
+
+// Vehicle areas offered in the "Area of Damage" dropdown (sorted A–Z at render time).
+const VEHICLE_AREAS = [
+  "A-Pillar (Left)", "A-Pillar (Right)", "Antenna", "Axle / Suspension (Front)", "Axle / Suspension (Rear)",
+  "B-Pillar (Left)", "B-Pillar (Right)", "Backup Camera", "Bumper Cover (Front)", "Bumper Cover (Rear)",
+  "Bumper Reinforcement (Front)", "Bumper Reinforcement (Rear)", "C-Pillar (Left)", "C-Pillar (Right)",
+  "Cowl", "Door Handle", "Door Mirror (Left)", "Door Mirror (Right)", "Door (Left Front)", "Door (Left Rear)",
+  "Door (Right Front)", "Door (Right Rear)", "Engine Compartment", "Exhaust System", "Fender (Left Front)",
+  "Fender (Right Front)", "Fog Lamp (Left)", "Fog Lamp (Right)", "Frame / Unibody", "Fuel Door",
+  "Glass – Back (Rear Window)", "Glass – Door (Left Front)", "Glass – Door (Left Rear)",
+  "Glass – Door (Right Front)", "Glass – Door (Right Rear)", "Glass – Quarter (Left)",
+  "Glass – Quarter (Right)", "Glass – Windshield", "Grille", "Headlamp (Left)", "Headlamp (Right)",
+  "Hood", "Hood Hinge", "Interior – Dashboard", "Interior – Headliner", "Interior – Seats",
+  "Interior – Trim / Console", "License Plate Bracket", "Liftgate / Tailgate", "Moonroof / Sunroof",
+  "Moulding / Trim (Exterior)", "Quarter Panel (Left Rear)", "Quarter Panel (Right Rear)", "Radiator Support",
+  "Rocker Panel (Left)", "Rocker Panel (Right)", "Roof", "Roof Rack", "Spoiler", "Tail Lamp (Left)",
+  "Tail Lamp (Right)", "Tire / Wheel (Left Front)", "Tire / Wheel (Left Rear)", "Tire / Wheel (Right Front)",
+  "Tire / Wheel (Right Rear)", "Trunk Lid", "Trunk Floor", "Underbody", "Wheel Well (Left Front)",
+  "Wheel Well (Left Rear)", "Wheel Well (Right Front)", "Wheel Well (Right Rear)", "Wiper / Cowl Area",
+  "Other",
+].sort((a, b) => (a === "Other") - (b === "Other") || a.localeCompare(b, "en", { numeric: true }));
 
 // ---------- Persistence ----------
 
@@ -98,7 +119,17 @@ function renderObservations() {
 function renderObservation(obs, index) {
   const node = observationTemplate.content.firstElementChild.cloneNode(true);
   node.dataset.id = obs.id;
-  node.querySelector(".observation__index").textContent = `Observation ${index + 1}`;
+  node.querySelector(".observation__index").textContent = `Area of Damage (#${index + 1})`;
+
+  // Vehicle area dropdown
+  const areaSelect = node.querySelector('[data-field="area"]');
+  areaSelect.add(new Option("— Select vehicle area —", ""));
+  VEHICLE_AREAS.forEach((area) => areaSelect.add(new Option(area, area)));
+  areaSelect.value = obs.area || "";
+  areaSelect.addEventListener("change", () => {
+    obs.area = areaSelect.value;
+    scheduleAutosave();
+  });
 
   // Approved checkbox
   const approvedInput = node.querySelector('[data-field="approved"]');

@@ -239,6 +239,11 @@ body {
   margin-bottom: 0.6rem;
 }
 
+.observation__area {
+  flex: 1;
+  min-width: 0;
+}
+
 .observation__index {
   font-weight: 700;
   color: var(--navy);

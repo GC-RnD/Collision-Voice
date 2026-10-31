@@ -89,7 +89,10 @@
       <template id="observationTemplate">
         <article class="observation" data-observation>
           <header class="observation__header">
-            <span class="observation__index"></span>
+            <label class="field observation__area">
+              <span class="observation__index"></span>
+              <select data-field="area" aria-label="Vehicle area of damage"></select>
+            </label>
             <label class="observation__approve">
               <input type="checkbox" data-field="approved" />
               Approved
