@@ -578,6 +578,13 @@ function init() {
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch((err) => console.warn("SW registration failed", err));
+    // Once a new service worker takes over, reload once so the app never stays stuck on stale code.
+    let reloadedForUpdate = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (reloadedForUpdate) return;
+      reloadedForUpdate = true;
+      window.location.reload();
+    });
   }
 }
 
