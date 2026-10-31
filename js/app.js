@@ -89,7 +89,38 @@ const vehicleFieldIds = {
   color: "vehicleColor",
 };
 
+// Makes sold in the US market (non-collectible), sorted A–Z at populate time.
+const VEHICLE_MAKES = [
+  "Acura", "Alfa Romeo", "Aston Martin", "Audi", "Bentley", "BMW", "Buick", "BYD", "Cadillac", "Chevrolet",
+  "Chrysler", "Dodge", "Ferrari", "Fiat", "Fisker", "Ford", "Genesis", "GMC", "Honda", "Hummer", "Hyundai",
+  "INEOS", "Infiniti", "Isuzu", "Jaguar", "Jeep", "Kia", "Lamborghini", "Land Rover", "Lexus", "Lincoln",
+  "Lotus", "Lucid", "Maserati", "Mazda", "McLaren", "Mercedes-Benz", "Mercury", "Mini", "Mitsubishi", "Nissan",
+  "Oldsmobile", "Plymouth", "Polestar", "Pontiac", "Porsche", "Ram", "Rivian", "Rolls-Royce", "Saab", "Saturn",
+  "Scion", "Smart", "Subaru", "Suzuki", "Tesla", "Toyota", "VinFast", "Volkswagen", "Volvo",
+];
+
+// Model years: next model year back to 1996 (OBD-II era); no collectibles.
+const OLDEST_MODEL_YEAR = 1996;
+
+function populateSelect(select, placeholder, values) {
+  select.innerHTML = "";
+  select.add(new Option(placeholder, ""));
+  values.forEach((v) => select.add(new Option(v, v)));
+}
+
+function populateVehicleSelects() {
+  populateSelect(
+    el("vehicleMake"),
+    "Select make",
+    [...VEHICLE_MAKES].sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" }))
+  );
+  const years = [];
+  for (let y = new Date().getFullYear() + 1; y >= OLDEST_MODEL_YEAR; y--) years.push(String(y));
+  populateSelect(el("vehicleYear"), "Select year", years);
+}
+
 function bindWorkfileFields() {
+  populateVehicleSelects();
   for (const [key, id] of Object.entries(workfileFieldIds)) {
     el(id).value = state.workfile[key] ?? "";
     el(id).addEventListener("input", () => {
@@ -98,7 +129,12 @@ function bindWorkfileFields() {
     });
   }
   for (const [key, id] of Object.entries(vehicleFieldIds)) {
-    el(id).value = state.vehicle[key] ?? "";
+    const saved = state.vehicle[key] ?? "";
+    // Keep previously saved free-text values (e.g. older drafts) selectable.
+    if (saved && el(id).tagName === "SELECT" && ![...el(id).options].some((o) => o.value === saved)) {
+      el(id).add(new Option(saved, saved));
+    }
+    el(id).value = saved;
     el(id).addEventListener("input", () => {
       state.vehicle[key] = el(id).value;
       scheduleAutosave();

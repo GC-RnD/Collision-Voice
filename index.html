@@ -19,7 +19,6 @@
   <header class="app-header">
     <div class="app-header__inner">
       <img class="app-header__logo" src="icons/Collision-Voice.png" alt="Collision Voice" />
-      <span class="app-header__status" id="syncStatus">Draft saved locally</span>
     </div>
   </header>
 
@@ -38,7 +37,7 @@
           <input type="text" id="inspectorName" placeholder="Your name" />
         </label>
         <label class="field">
-          <span>Status</span>
+          <span>Status <span class="status-inline" id="syncStatus">Draft saved locally</span></span>
           <select id="workfileStatus">
             <option value="draft">Draft</option>
             <option value="in-review">In review</option>
@@ -51,11 +50,11 @@
       <div class="field-grid">
         <label class="field">
           <span>Year</span>
-          <input type="text" inputmode="numeric" id="vehicleYear" placeholder="2024" />
+          <select id="vehicleYear"></select>
         </label>
         <label class="field">
           <span>Make</span>
-          <input type="text" id="vehicleMake" placeholder="Honda" />
+          <select id="vehicleMake"></select>
         </label>
         <label class="field">
           <span>Model</span>
