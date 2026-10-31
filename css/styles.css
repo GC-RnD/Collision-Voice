@@ -225,6 +225,12 @@ body {
   gap: 0.9rem;
 }
 
+.observation-add-btn {
+  margin-top: 0.9rem;
+  width: 100%;
+  justify-content: center;
+}
+
 .observation {
   border: 1px solid var(--border);
   border-radius: var(--radius);

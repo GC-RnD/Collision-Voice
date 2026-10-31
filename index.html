@@ -77,13 +77,12 @@
 
     <!-- Observations -->
     <section class="card" aria-labelledby="observations-heading">
-      <div class="card__row-between">
-        <h2 id="observations-heading">Observations</h2>
-        <button type="button" class="btn btn--primary" id="addObservationBtn">+ Add observation</button>
-      </div>
+      <h2 id="observations-heading">Observations</h2>
       <p class="hint">Each observation pairs one or more photos with a spoken (or typed) note about the damage.</p>
 
       <div id="observationList" class="observation-list"></div>
+
+      <button type="button" class="btn btn--primary observation-add-btn" id="addObservationBtn">+ Add observation</button>
 
       <template id="observationTemplate">
         <article class="observation" data-observation>

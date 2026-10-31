@@ -371,6 +371,7 @@ function addObservation() {
   state.observations.push(createEmptyObservation());
   renderObservations();
   scheduleAutosave();
+  observationListEl.lastElementChild?.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 function exportJson() {
