@@ -167,16 +167,19 @@ function renderObservation(obs, index) {
     scheduleAutosave();
   });
 
-  // Approved checkbox
+  // Approved checkbox — approving locks Remove to prevent accidental deletion.
   const approvedInput = node.querySelector('[data-field="approved"]');
+  const removeBtn = node.querySelector('[data-action="remove"]');
   approvedInput.checked = !!obs.approved;
+  removeBtn.disabled = approvedInput.checked;
   approvedInput.addEventListener("change", () => {
     obs.approved = approvedInput.checked;
+    removeBtn.disabled = approvedInput.checked;
     scheduleAutosave();
   });
 
   // Remove button
-  node.querySelector('[data-action="remove"]').addEventListener("click", () => {
+  removeBtn.addEventListener("click", () => {
     state.observations = state.observations.filter((o) => o.id !== obs.id);
     renderObservations();
     scheduleAutosave();
