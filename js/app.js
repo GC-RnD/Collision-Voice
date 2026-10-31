@@ -189,15 +189,27 @@ function renderObservation(obs, index) {
   const thumbsEl = node.querySelector("[data-photo-thumbs]");
   renderThumbs(thumbsEl, obs);
   const photoInput = node.querySelector('[data-field="photos"]');
+  const photoAddLabel = node.querySelector(".photo-add");
   photoInput.addEventListener("change", async () => {
     const files = Array.from(photoInput.files || []);
-    for (const file of files) {
-      const dataUrl = await fileToDataUrl(file);
-      obs.photos.push({ id: uid(), name: file.name, dataUrl });
+    if (!files.length) return;
+    photoInput.disabled = true;
+    photoAddLabel.classList.add("is-busy");
+    setStatus("Tagging photo location…");
+    try {
+      const location = await getCurrentLocation();
+      for (const file of files) {
+        const rawDataUrl = await fileToDataUrl(file);
+        const stampedDataUrl = await stampPhotoWithLocation(rawDataUrl, location);
+        obs.photos.push({ id: uid(), name: file.name, dataUrl: stampedDataUrl, location });
+      }
+      renderThumbs(thumbsEl, obs);
+      scheduleAutosave();
+    } finally {
+      photoInput.value = "";
+      photoInput.disabled = false;
+      photoAddLabel.classList.remove("is-busy");
     }
-    renderThumbs(thumbsEl, obs);
-    photoInput.value = "";
-    scheduleAutosave();
   });
 
   // Transcript
@@ -234,6 +246,15 @@ function renderThumbs(thumbsEl, obs) {
     img.src = photo.dataUrl;
     img.alt = photo.name;
     img.title = photo.name;
+    img.tabIndex = 0;
+    img.setAttribute("role", "button");
+    img.addEventListener("click", () => openLightbox(photo.dataUrl, photo.name));
+    img.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter" || ev.key === " ") {
+        ev.preventDefault();
+        openLightbox(photo.dataUrl, photo.name);
+      }
+    });
     thumbsEl.appendChild(img);
   });
 }
@@ -245,6 +266,96 @@ function fileToDataUrl(file) {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+
+// ---------- Photo lightbox ----------
+
+function openLightbox(src, altText) {
+  el("lightboxImg").src = src;
+  el("lightboxImg").alt = altText || "";
+  el("photoLightbox").hidden = false;
+}
+
+function closeLightbox() {
+  el("photoLightbox").hidden = true;
+  el("lightboxImg").src = "";
+}
+
+function bindLightbox() {
+  el("lightboxClose").addEventListener("click", closeLightbox);
+  el("photoLightbox").addEventListener("click", (ev) => {
+    if (ev.target === el("photoLightbox")) closeLightbox();
+  });
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape" && !el("photoLightbox").hidden) closeLightbox();
+  });
+}
+
+// ---------- GPS geotagging ----------
+
+/** Requests one position fix; resolves to null (instead of rejecting) if unavailable or denied. */
+function getCurrentLocation() {
+  if (!("geolocation" in navigator)) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, accuracy: pos.coords.accuracy }),
+      () => resolve(null),
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+    );
+  });
+}
+
+function formatCoords(lat, lon) {
+  const latDir = lat >= 0 ? "N" : "S";
+  const lonDir = lon >= 0 ? "E" : "W";
+  return `${Math.abs(lat).toFixed(5)}° ${latDir}, ${Math.abs(lon).toFixed(5)}° ${lonDir}`;
+}
+
+function loadImageElement(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+/** Burns a GPS/time stamp into the photo's upper-left corner, similar to a geotag-camera watermark. */
+async function stampPhotoWithLocation(dataUrl, location) {
+  let img;
+  try {
+    img = await loadImageElement(dataUrl);
+  } catch {
+    return dataUrl;
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0);
+
+  const lines = [
+    location ? `📍 ${formatCoords(location.lat, location.lon)}` : "📍 Location unavailable",
+    new Date().toLocaleString(),
+  ];
+
+  const fontSize = Math.max(16, Math.round(canvas.width * 0.028));
+  ctx.font = `600 ${fontSize}px -apple-system, Segoe UI, Roboto, Arial, sans-serif`;
+  ctx.textBaseline = "top";
+  const padding = fontSize * 0.6;
+  const lineHeight = fontSize * 1.35;
+  const textWidth = Math.max(...lines.map((line) => ctx.measureText(line).width));
+
+  ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+  ctx.fillRect(0, 0, textWidth + padding * 2, lineHeight * lines.length + padding);
+
+  ctx.fillStyle = "#ffffff";
+  lines.forEach((line, i) => {
+    ctx.fillText(line, padding, padding / 2 + i * lineHeight);
+  });
+
+  return canvas.toDataURL("image/jpeg", 0.9);
 }
 
 // ---------- Voice recording (MediaRecorder) ----------
@@ -402,6 +513,7 @@ function init() {
   loadState();
   bindWorkfileFields();
   renderObservations();
+  bindLightbox();
 
   el("addObservationBtn").addEventListener("click", addObservation);
   el("saveDraftBtn").addEventListener("click", saveState);
