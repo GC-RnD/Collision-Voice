@@ -14,3 +14,9 @@ __pycache__/
 *.pyc
 dist/
 build/
+
+# Local-only screenshots and research images (never pushed to GitHub)
+local-images/
+
+# Test packages downloaded from the app (may contain customer photos and notes)
+*.zip

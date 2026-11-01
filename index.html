@@ -19,6 +19,7 @@
   <header class="app-header">
     <div class="app-header__inner">
       <img class="app-header__logo" src="icons/Collision-Voice.png" alt="Collision Voice" />
+      <span class="status-inline" id="syncStatus" role="status" aria-live="polite"></span>
     </div>
   </header>
 
@@ -27,22 +28,23 @@
     <!-- Work file -->
     <section class="card" aria-labelledby="workfile-heading">
       <h2 id="workfile-heading">Work File</h2>
+      <p class="started-at" id="startedAt"></p>
       <div class="field-grid">
         <label class="field">
           <span>Assignment / Claim #</span>
           <input type="text" id="assignmentId" placeholder="e.g. CV-2026-0417" />
         </label>
         <label class="field">
+          <span>Customer name</span>
+          <input type="text" id="customerName" placeholder="Customer / policyholder" autocomplete="off" />
+        </label>
+        <label class="field">
           <span>Inspector</span>
           <input type="text" id="inspectorName" placeholder="Your name" />
         </label>
         <label class="field">
-          <span>Status <span class="status-inline" id="syncStatus">Draft saved locally</span></span>
-          <select id="workfileStatus">
-            <option value="draft">Draft</option>
-            <option value="in-review">In review</option>
-            <option value="approved">Approved</option>
-          </select>
+          <span>Inspection type</span>
+          <select id="inspectionType"></select>
         </label>
       </div>
 
@@ -60,17 +62,32 @@
           <span>Model</span>
           <input type="text" id="vehicleModel" placeholder="Civic" />
         </label>
-        <label class="field">
-          <span>VIN</span>
-          <input type="text" id="vehicleVin" placeholder="17-character VIN" maxlength="17" />
-        </label>
-        <label class="field">
-          <span>License plate</span>
-          <input type="text" id="vehiclePlate" placeholder="ABC-1234" />
-        </label>
+        <div class="field field--full">
+          <label for="vehicleVin">VIN</label>
+          <div class="input-with-action">
+            <input type="text" id="vehicleVin" placeholder="17-character VIN" maxlength="17" autocapitalize="characters" autocomplete="off" />
+            <label class="scan-btn" title="Scan the VIN with the camera" aria-label="Scan the VIN with the camera">
+              📷
+              <input type="file" accept="image/*" capture="environment" data-scan="vin" hidden />
+            </label>
+          </div>
+          <small class="field-hint" data-hint="vin" aria-live="polite"></small>
+          <small class="field-hint" data-hint="vin-decode" aria-live="polite"></small>
+        </div>
+        <div class="field">
+          <label for="vehiclePlate">License plate</label>
+          <div class="input-with-action">
+            <input type="text" id="vehiclePlate" placeholder="ABC-1234" autocapitalize="characters" autocomplete="off" />
+            <label class="scan-btn" title="Scan the license plate with the camera" aria-label="Scan the license plate with the camera">
+              📷
+              <input type="file" accept="image/*" capture="environment" data-scan="plate" hidden />
+            </label>
+          </div>
+          <small class="field-hint" data-hint="plate" aria-live="polite"></small>
+        </div>
         <label class="field">
           <span>Color</span>
-          <input type="text" id="vehicleColor" placeholder="Silver" />
+          <select id="vehicleColor"></select>
         </label>
       </div>
     </section>
@@ -78,7 +95,7 @@
     <!-- Observations -->
     <section class="card" aria-labelledby="observations-heading">
       <h2 id="observations-heading">Observations</h2>
-      <p class="hint">Each observation pairs one or more photos with a spoken (or typed) note about the damage.</p>
+      <p class="hint">Each observation is one damage area. Take as many photos as you need, then tap a photo to dictate its note, flip through the photos, or delete one. Every photo gets an image number.</p>
 
       <div id="observationList" class="observation-list"></div>
 
@@ -110,49 +127,83 @@
             </div>
 
             <div class="observation__voice">
-              <button type="button" class="btn btn--record" data-action="record">
+              <button type="button" class="btn btn--record" data-action="dictate">
                 <span class="record-dot"></span>
-                <span data-record-label>Record narration</span>
+                <span data-dictate-label>Dictate overall note</span>
               </button>
-              <button type="button" class="btn btn--secondary" data-action="transcribe" data-transcribe-btn disabled>
-                <span data-transcribe-label>Transcribe</span>
-              </button>
-              <audio controls data-audio-player hidden></audio>
             </div>
 
             <label class="field">
-              <span>Transcript / notes</span>
-              <textarea rows="3" data-field="transcript" placeholder="Type notes here (speech-to-text comes in a later phase)"></textarea>
+              <span>Overall notes for this damage area</span>
+              <textarea rows="3" data-field="transcript" placeholder="Tap Dictate and talk, or type here"></textarea>
             </label>
-
-            <div class="ai-suggestion" data-ai-suggestion>
-              <span class="ai-suggestion__label">AI suggestion</span>
-              <span class="ai-suggestion__text">Not available yet — this phase uses manual transcript entry only.</span>
-            </div>
           </div>
         </article>
       </template>
     </section>
 
+    <!-- Notes summary and export -->
+    <section class="card no-print" aria-labelledby="export-heading">
+      <h2 id="export-heading">Notes &amp; Send</h2>
+
+      <label class="field">
+        <span>All notes in one place (image numbers included)</span>
+        <textarea id="notesSummary" rows="9" readonly></textarea>
+      </label>
+      <div class="action-row">
+        <button type="button" class="btn btn--secondary" id="copyNotesBtn">Copy all notes</button>
+      </div>
+
+      <h3>Send this job</h3>
+      <p class="hint">Packs every photo, the notes and the data into a .zip. Large jobs are split into several files so each one fits in an email.</p>
+      <label class="field field--narrow">
+        <span>Photo size</span>
+        <select id="exportSize">
+          <option value="original">Original size (largest)</option>
+          <option value="reduced">Reduced (about 2000 px — smaller emails)</option>
+        </select>
+      </label>
+      <div class="action-row">
+        <button type="button" class="btn btn--primary" id="buildPackageBtn">Prepare package</button>
+      </div>
+      <div id="packageParts" class="package-parts"></div>
+
+      <h3>Next job</h3>
+      <div class="action-row">
+        <button type="button" class="btn btn--danger-solid" id="newJobBtn">Start new job (clears this one)</button>
+      </div>
+      <p class="hint" id="storageInfo"></p>
+    </section>
+
   </main>
 
-  <div class="lightbox" id="photoLightbox" hidden>
-    <button type="button" class="lightbox__close" id="lightboxClose" aria-label="Close photo">✕</button>
-    <img class="lightbox__img" id="lightboxImg" alt="" />
-    <div class="lightbox__review" id="lightboxReviewActions" hidden>
-      <button type="button" class="btn btn--danger-solid" id="lightboxDelete">Delete</button>
-      <button type="button" class="btn btn--primary" id="lightboxSave">Save photo</button>
+  <div class="viewer" id="photoLightbox" hidden role="dialog" aria-modal="true" aria-label="Photo viewer">
+    <div class="viewer__top">
+      <div class="viewer__title" id="viewerTitle"></div>
+      <button type="button" class="viewer__close" id="lightboxClose" aria-label="Close photo">✕</button>
+    </div>
+    <div class="viewer__stage">
+      <img class="viewer__img" id="lightboxImg" alt="" />
+    </div>
+    <div class="viewer__panel">
+      <label class="field viewer__note">
+        <span>Note for this image</span>
+        <textarea id="viewerNote" rows="3" placeholder="Tap Dictate and describe this photo, or type here"></textarea>
+      </label>
+      <div class="viewer__actions">
+        <button type="button" class="btn btn--secondary" id="viewerPrev">‹ Prev</button>
+        <button type="button" class="btn btn--record" id="viewerDictate">
+          <span class="record-dot"></span>
+          <span id="viewerDictateLabel">Dictate</span>
+        </button>
+        <button type="button" class="btn btn--secondary" id="viewerNext">Next ›</button>
+        <button type="button" class="btn btn--danger-solid" id="viewerDelete">Delete</button>
+      </div>
     </div>
   </div>
 
-  <footer class="app-footer">
-    <div class="app-footer__inner">
-      <button type="button" class="btn btn--secondary" id="saveDraftBtn">Save draft</button>
-      <button type="button" class="btn btn--secondary" id="exportJsonBtn">Export JSON</button>
-      <button type="button" class="btn btn--primary" id="printReportBtn">Print report</button>
-    </div>
-  </footer>
-
+  <script src="js/storage.js"></script>
+  <script src="js/zip.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

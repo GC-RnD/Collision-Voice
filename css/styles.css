@@ -27,6 +27,7 @@ body {
   background: var(--bg);
   color: var(--text);
   line-height: 1.4;
+  overflow-x: clip; /* safety net: never let a stray wide element add a sideways scrollbar */
 }
 
 /* Header */
@@ -54,10 +55,11 @@ body {
 }
 
 .status-inline {
+  margin-left: auto;
   color: var(--text-muted);
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 400;
-  white-space: nowrap;
+  text-align: right;
 }
 
 /* Layout */
@@ -65,7 +67,17 @@ body {
   max-width: var(--content-max-width);
   margin: 0 auto;
   padding: 1rem;
-  padding-bottom: 6rem;
+  padding-bottom: 2rem;
+}
+
+.started-at:empty {
+  display: none;
+}
+
+.started-at {
+  margin: -0.35rem 0 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.78rem;
 }
 
 .card {
@@ -106,23 +118,33 @@ body {
 /* Fields */
 .field-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); /* two columns fit on an iPhone */
   gap: 0.75rem;
+}
+
+/* A VIN is 17 characters, so its field takes the full row. */
+.field--full {
+  grid-column: 1 / -1;
 }
 
 .field {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+  min-width: 0; /* lets a field shrink to its grid column instead of widening the page */
   font-size: 0.85rem;
   color: var(--text-muted);
 }
 
+/* 16px keeps iPhone Safari from zooming the page when a field is tapped (which also leaves it scrolled sideways). */
 .field input,
 .field select,
 .field textarea {
   font: inherit;
-  font-size: 0.95rem;
+  font-size: 16px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   color: var(--text);
   padding: 0.5rem 0.6rem;
   border: 1px solid var(--border);
@@ -139,6 +161,71 @@ body {
 
 .field textarea {
   resize: vertical;
+}
+
+/* VIN and plate fields: a small camera icon sits inside the right end of the field. */
+.input-with-action {
+  position: relative;
+}
+
+.input-with-action input[type="text"] {
+  padding-right: 2.6rem;
+  text-transform: uppercase;
+}
+
+.scan-btn {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  bottom: 3px;
+  width: 2.3rem;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: #eef1f4;
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.scan-btn:hover,
+.scan-btn:focus-within {
+  background: #dfe5ec;
+}
+
+.scan-btn.is-busy {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.field-hint {
+  display: block;
+  min-height: 1em;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.field-hint:empty {
+  display: none;
+}
+
+.field-hint .chip {
+  display: inline-block;
+  margin: 0.2rem 0.3rem 0 0;
+  padding: 0.15rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--navy);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.field-hint--warn {
+  color: #9a5b00;
 }
 
 /* Buttons */
@@ -299,21 +386,48 @@ body {
   gap: 0.4rem;
 }
 
-.photo-thumbs img {
-  width: 64px;
-  height: 64px;
-  object-fit: cover;
-  border-radius: 6px;
+.thumb {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  padding: 0;
   border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #e9edf1;
   cursor: pointer;
+  overflow: hidden;
   transition: opacity 0.15s ease;
 }
 
-.photo-thumbs img:hover,
-.photo-thumbs img:focus-visible {
-  opacity: 0.8;
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.thumb:hover,
+.thumb:focus-visible {
+  opacity: 0.85;
   outline: 2px solid var(--navy-light);
   outline-offset: 1px;
+}
+
+.thumb__num {
+  position: absolute;
+  left: 3px;
+  bottom: 3px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(16, 36, 62, 0.85);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.thumb.has-note .thumb__num::after {
+  content: " ✎";
 }
 
 .photo-add {
@@ -332,63 +446,41 @@ body {
   flex-wrap: wrap;
 }
 
-.observation__voice audio {
-  max-width: 220px;
-  height: 32px;
-}
-
-.ai-suggestion {
-  background: #eef1f4;
-  border: 1px dashed var(--border);
-  border-radius: 8px;
-  padding: 0.5rem 0.65rem;
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.ai-suggestion__label {
-  font-weight: 700;
-  color: var(--navy);
-  text-transform: uppercase;
-  font-size: 0.7rem;
-  letter-spacing: 0.04em;
-}
-
-/* Photo lightbox */
-.lightbox {
+/* Photo viewer */
+.viewer {
   position: fixed;
   inset: 0;
-  background: rgba(10, 16, 26, 0.92);
+  background: #0a101a;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: 1rem;
+  overflow-y: auto; /* short screens (landscape, keyboard open) can scroll instead of clipping the buttons */
   z-index: 100;
+  color: #fff;
 }
 
-.lightbox[hidden] {
+.viewer[hidden] {
   display: none;
 }
 
-.lightbox__img {
-  flex: 1 1 auto;
-  min-height: 0;
-  max-width: 100%;
-  object-fit: contain;
-  border-radius: 8px;
+.viewer__top {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));
 }
 
-.lightbox__close {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  width: 42px;
-  height: 42px;
+.viewer__title {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.viewer__close {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: none;
   background: rgba(255, 255, 255, 0.15);
@@ -398,51 +490,121 @@ body {
   cursor: pointer;
 }
 
-.lightbox__close:hover {
+.viewer__close:hover {
   background: rgba(255, 255, 255, 0.3);
 }
 
-.lightbox__review {
-  flex: 0 0 auto;
+.viewer__close:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.viewer__stage {
+  flex: 1 1 auto;
+  min-height: 160px;
   display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 0.75rem;
   padding: 0 1rem;
 }
 
-.lightbox__review .btn {
-  min-width: 100px;
-  justify-content: center;
-  font-size: 0.82rem;
-  padding: 0.45rem 0.8rem;
+.viewer__img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
 }
 
-/* Footer action bar */
-.app-footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+.viewer__panel {
+  flex: 0 0 auto;
   background: #fff;
-  border-top: 1px solid var(--border);
-  z-index: 10;
-}
-
-.app-footer__inner {
-  max-width: var(--content-max-width);
-  margin: 0 auto;
+  color: var(--text);
+  padding: 0.75rem 1rem;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
   display: flex;
+  flex-direction: column;
   gap: 0.6rem;
-  justify-content: center;
-  padding: 0.65rem 1rem;
 }
 
+.viewer__actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.viewer__actions .btn {
+  justify-content: center;
+  min-width: 0;
+  padding: 0.7rem 0.4rem;
+  font-size: 0.9rem;
+}
+
+/* Dictate is the main action: full width, on top, easy to hit. */
+.viewer__actions #viewerDictate {
+  grid-column: 1 / -1;
+  order: -1;
+  padding: 0.9rem;
+  font-size: 1.05rem;
+}
+
+/* Notes summary, package list, storage */
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+
+.field--narrow {
+  max-width: 320px;
+}
+
+#notesSummary {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  background: #f8fafb;
+}
+
+.package-parts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.package-part {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #f8fafb;
+}
+
+.package-part__text {
+  flex: 1 1 200px;
+  font-size: 0.88rem;
+}
+
+#storageInfo.is-warning {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* Printing (Ctrl/Cmd+P): show the job details and observations only — no buttons, tools or send controls.
+   A formal PDF report is planned (see TODO.md). */
 @media print {
-  .app-header, .app-footer, .photo-add, [data-action="remove"], [data-action="record"] {
+  .app-header, .photo-add, .viewer, [data-action="remove"], [data-action="dictate"],
+  .no-print, .observation-add-btn, .hint, .started-at:empty, .scan-btn, .field-hint {
     display: none !important;
   }
   .card {
     border: none;
+    break-inside: avoid;
+  }
+  .observation {
     break-inside: avoid;
   }
 }
