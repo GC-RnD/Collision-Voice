@@ -1,89 +1,39 @@
 # To-Do
 
-_Last updated: 2026-10-31. Not-done items are listed first so it's clear what's outstanding at a glance;
-completed work is further down for reference._
+_Last updated: 2026-11-01. Forward-looking only — finished work isn't tracked here (see [OVERVIEW.md](./OVERVIEW.md) for how the app works today)._
 
-## Not done yet
+**Where we are:** the app does what it was built to do. An inspector captures a job on the phone (photos, dictated notes, vehicle details with VIN and plate scanning) and taps **Share** to save the zip to OneDrive or send it by email. What's left is waiting on Mitchell, a few checks on real phones, and optional features.
 
-### Branding & project setup
-- [ ] Decide final rebrand timing; if proceeding, rename app across manifest/title/logo/folder/repo (see [BRANDING.md](./BRANDING.md))
-- [ ] Buy `fieldscope.io` and/or `vocident.com` once names are locked in
-- [ ] Initialize the local git repository — **not done yet**, this folder isn't a git repo at all right now
-- [ ] Create the GitHub repo, push the code, add the collaborator
-- [ ] Set up hosting (Cloudflare and/or GitHub Pages) and connect it to GitHub for auto-deploy
-- [ ] Decide final hosting provider/region/backup target
+## Waiting on Mitchell
 
-### Core workflow gaps
-- [ ] Dedicated/polished printable report layout — current "print" just prints the on-screen form via print CSS, not a purpose-built report
-- [ ] Documented + validated JSON export schema — we export versioned JSON today, but there's no written schema spec or validator yet
-- [ ] Batch "close out" export — save/share **all** photos (and the full work-file report) across every observation in one action at job completion, instead of one photo at a time. Likely approach: a single multi-file Web Share call (good for Camera Roll in one tap) and/or a zip bundle containing the JSON report + every photo (tidier, works on desktop too, opens natively in iOS Files)
-- [ ] Email-delivery export path — zip the report + photos and send/share it to an email address so the inspector can pick everything up on a desktop later; alternative/complement to on-device save, direction not chosen yet
-- [ ] Remember export-format preference (e.g., individual photos vs. zip bundle) across sessions — this is just an app setting (feasible via localStorage) and is different from remembering a *save destination*: a remembered destination folder isn't possible on iOS Safari (no File System Access API, no silent repeat-save permission — Apple requires a confirmation every time), though it is feasible on desktop Chrome/Edge
+- [ ] **Upload button (to Mitchell).** A greyed-out placeholder sits on the Report card. It becomes real only if Mitchell / Enlyte offers an approved route in (a partner program or an API). Next step: have the end user ask their Mitchell contact whether one exists, and what it requires (see the CIECA / connectivity research in [OVERVIEW.md](./OVERVIEW.md)). Never automate or reverse-engineer Mitchell's site.
+- [ ] **Written data format.** `inspection.json` and `manifest.json` already travel inside every zip. If Mitchell (or anyone) will read them, write down a proper spec and validator — see "Draft protocols" in [OVERVIEW.md](./OVERVIEW.md).
+- [ ] **Fill the work file from the assignment email** (claim #, customer, vehicle / VIN). Needs a redacted sample assignment email from the end user to see whether the layout is standard. See "Pulling job details from the assignment email" in [OVERVIEW.md](./OVERVIEW.md).
+- [ ] **Questions for the end user** — the list is in [END-USER-SUMMARY.md](./END-USER-SUMMARY.md). Answers decide what to build next.
 
-### Backend / accounts (Phase 2+ in the project notes)
-- [ ] Accounts & sign-in
-- [ ] Hosted API/server
-- [ ] Real database (e.g. PostgreSQL) for work-file/observation metadata
-- [ ] Private cloud object storage for photos/audio — everything currently lives only in the browser (localStorage), nothing is backed up off-device
-- [ ] Multi-user roles & authorization boundaries
-- [ ] Offline capture queue + sync status — the service worker only caches the app shell for installability today; there's no "queue changes/uploads while offline and sync later" logic yet (and nowhere to sync to until there's a backend)
+## Checks on real phones
 
-### AI / speech (Phase 3 in the project notes)
-- [ ] AI-generated damage/observation suggestions — currently a placeholder block only, always empty
-- [ ] Decide the production speech-to-text provider/strategy — the current on-device Whisper model is a working, verified proof of concept, not yet a confirmed production choice
+- [ ] **VIN barcode and plate scanners with the live camera** on an iPhone, and on the older iPad (it may not be able to run the plate reader). Tested so far only with photos on a desktop. Drop any failing photos in `local-images/`.
+- [ ] **Permission prompts in Chrome on the iPhone** — confirm the microphone and location are asked once per visit, and see whether the Home Screen app asks again on every launch.
+- [ ] **A big job** (about 50 full-size photos): watch memory and battery during the background zip build, and the share sheet with a large zip.
+- [ ] **Other devices:** a full run-through on the iPad, an Android phone, and working with no signal.
 
-### Open decisions still unresolved
-_(also tracked in [files_vehicle-inspection-app-notes.md](./files_vehicle-inspection-app-notes.md))_
-- [ ] Photo/report delivery direction at job close-out: on-device save (Camera Roll/Files via Web Share), a zip bundle, email delivery, or some combination — not decided yet
-- [ ] GPS marking exact format, placement, and whether the inspector can opt out/adjust it
-- [ ] Assignment-number format and uniqueness rules
-- [ ] Offline requirements / maximum expected time without connectivity
-- [ ] User roles, collaboration, and access scope
-- [ ] Required vehicle/inspection fields beyond what's already built
-- [ ] Recording consent, retention duration, deletion/export policy
-- [ ] Report layout and any required estimate-platform import format
+## Features to consider
 
-### Testing / validation
-- [ ] Real-device testing on representative Android/iOS phones & tablets — only tested in a desktop browser (with automation) so far
-- [ ] Automated tests — none exist yet; all validation has been manual/smoke-testing during development
+- [ ] **PDF report** (on hold — the zip works well): logo upper-left, job details, then per damage area the overall note plus photo **thumbnails** each with image number, GPS/time and its own note, and a contents list mapping image numbers to the `IMG-###.jpg` files; created in the app and included in the zip as `report.pdf`. Design options are in [OVERVIEW.md](./OVERVIEW.md), "PDF report — design thoughts". Needs a decision on a PDF library first.
+- [ ] **Open a saved report** — load a saved zip back into the app to carry on or re-send. Looks feasible because the zip already describes every photo, note and image number.
+- [ ] **Keep sent jobs for a few days** before they can be cleared (and ask "did it arrive?"), never auto-deleting a job that hasn't been shared.
+- [ ] **Required-photos checklist** (VIN, plate, odometer, four corners…) before a job can be shared; photo markup (arrows, circles).
+- [ ] **☰ menu extras:** an "Install this app" tip for the user's browser, a short "what's new" per version, a "send feedback" link.
+- [ ] **VIN / plate extras:** keep the scan photo as GPS-stamped evidence; show whether the VIN's check digit is valid while typing; test other states' plates.
+- [ ] **Notes in the photo files** (EXIF/XMP caption) as a backup, and a decision on the exact GPS stamp format and whether the inspector can turn it off.
+- [ ] **Keep the guide current** whenever the app changes: edit `docs/user-guide.html`, retake the screenshots, and print it to PDF.
 
-### Later / explicitly deferred (not current goals)
-- [ ] Mitchell or other estimate-system integration — explicitly deferred per the project notes until a supported interface is confirmed
-- [ ] Native app-store wrapping (Capacitor/TWA) — only needed if/when this goes to the app stores
+## Product and business (later)
 
----
-
-## Completed so far
-
-### PWA shell
-- Installable PWA: `manifest.webmanifest` + service worker (`sw.js`) caching the app shell for offline/instant reload
-- Network-first caching for app code (HTML/JS/CSS) with cache-first for static icons, plus auto-reload when a new version activates — fixes an earlier issue where phones could stay stuck on stale cached code after an update
-- Responsive, plain/clean UI (`css/styles.css`), mobile-first layout
-
-### Branding
-- Logo designed — flat/wireframe style icon mark + full wordmark lockup, exported to all standard icon sizes (192/512, maskable variants, apple-touch-icon, favicons)
-- [BRANDING.md](./BRANDING.md) created, documenting the company name (FieldScope) and product name (Vocident), domain availability research, and everywhere in the code that would need updating if/when the rebrand is executed
-
-### Work file & vehicle details
-- Assignment/claim #, inspector name, status
-- Vehicle year/make/model/VIN/plate/color, with Year and Make as dropdowns (Make A–Z; Year from next model year back to 1996) and "Area of Damage" as a searchable A–Z vehicle-area dropdown (roof, hood, trunk, doors, fenders, bumpers, glass, etc.) instead of free text
-
-### Observations
-- Repeatable observation cards (add/remove), newest card shown above the "+ Add observation" button and auto-scrolled into view; Approved locks the Remove button to prevent accidental deletes
-- Multi-photo capture (native camera or file picker)
-- GPS + timestamp geotag burned into each photo's corner at capture time (small, semi-transparent caption; falls back to "Location unavailable" if permission is denied/unsupported)
-- Post-capture review: the newly captured photo opens full-screen with Save/Delete before it's kept; Save also offers the OS share sheet to copy that one photo to Camera Roll or Files (verified working)
-- Full-screen photo lightbox for viewing any already-saved thumbnail (✕/Escape/backdrop to close)
-- Voice narration recording + playback (MediaRecorder)
-- On-device, privacy-preserving speech-to-text transcription (runs fully in the browser via WASM) — verified working end-to-end with real speech audio; no audio is ever sent to a server
-- Editable transcript field
-- Placeholder "AI suggestion" block (intentionally not functional yet)
-- Approve checkbox per observation
-
-### Data & export
-- Autosave to localStorage (draft persists across reloads on the same device/browser)
-- Versioned JSON export (download)
-- Print report (browser print, with print-specific CSS that hides the editing controls)
-
-### Testing done
-- Verified manifest validity, icon loading, multi-observation rendering, autosave status, and the full transcription pipeline (model load → real speech → correct transcript text) via a local static server plus automated browser testing
+- [ ] **Rebrand** decision and domain purchase — see [BRANDING.md](./BRANDING.md).
+- [ ] **Hosting and privacy:** the code lives in a public GitHub repo served by GitHub Pages, so private notes are kept out of it. Decide whether to keep that setup, make the repo private, or move hosting.
+- [ ] **Backend** (accounts and sign-in, hosted storage, roles, retention and consent policy) — only if the product grows beyond phone-only.
+- [ ] **AI suggestions** for damage descriptions, and the production choice for speech-to-text (today's on-device model is a proven prototype).
+- [ ] **Automated tests** — none exist yet; everything has been checked by hand and with ad-hoc scripts.
+- [ ] **App-store wrapper** (Capacitor / TWA) — only if it ever needs to be in the stores.

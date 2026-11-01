@@ -84,6 +84,16 @@ For each work file, retain the assignment identifier, vehicle details, inspectio
 - Build an integration only against documented, authorized interfaces. Do not make browser automation or reverse-engineering the foundation.
 - Treat estimate operations, labor times, parts, and pricing as licensed data that must come from an authorized source; AI should not invent them.
 
+#### Questions to put to Mitchell (or the Enlyte Portal)
+
+Background: Mitchell publicly describes an "open platform" and a "Mitchell Intelligent Open Platform" (see [OVERVIEW.md](./OVERVIEW.md)), but no public developer documentation was found. These answers decide whether Phase 5 is possible.
+
+1. Is there a partner or developer program for third-party apps, and what are the terms, costs and approval steps?
+2. Can a third-party app submit photos plus notes (including narration transcripts) into a claim or estimate, and through what interface?
+3. Is BMS import supported, and for which products (Cloud Estimating, Cloud Repair, RepairCenter, WorkCenter)?
+4. Does any Mitchell product accept voice or narration notes today or on the roadmap?
+5. Does Mitchell accept incoming CIECA "Attachment" or "AI" messages (photos/videos + vehicle info) from third-party apps — in BMS XML or CIECA's newer JSON API standards? See [OVERVIEW.md](./OVERVIEW.md), "Mitchell's connectivity and data sharing (CIECA standards)." CIECA membership (about $1,000/yr for a small software company, per CIECA's 2021-dated pricing page) would be required to use the standards.
+
 ## Proof-of-concept handoff contract
 
 - The POC's deliverable is an inspection record plus an app-owned JSON export; it is not a Mitchell estimate file and does not claim compatibility with Mitchell servers.
