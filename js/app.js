@@ -390,13 +390,26 @@ function formatCoords(lat, lon) {
   return `${Math.abs(lat).toFixed(5)}° ${latDir}, ${Math.abs(lon).toFixed(5)}° ${lonDir}`;
 }
 
-/** Requests one position fix; resolves to null (instead of rejecting) if unavailable or denied. */
+/** Requests one position fix; resolves to null (instead of rejecting) if unavailable or denied. A recent fix is reused,
+ *  so a phone that asks for permission every time only asks on the first photo; a refusal isn't asked again this session. */
+const LOCATION_REUSE_MS = 10 * 60 * 1000;
+let lastLocation = null; // { fix, at }
+let locationDenied = false;
+
 function getCurrentLocation() {
-  if (!("geolocation" in navigator)) return Promise.resolve(null);
+  if (!("geolocation" in navigator) || locationDenied) return Promise.resolve(null);
+  if (lastLocation && Date.now() - lastLocation.at < LOCATION_REUSE_MS) return Promise.resolve(lastLocation.fix);
   return new Promise((resolve) => {
     navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, accuracy: pos.coords.accuracy }),
-      () => resolve(null),
+      (pos) => {
+        const fix = { lat: pos.coords.latitude, lon: pos.coords.longitude, accuracy: pos.coords.accuracy };
+        lastLocation = { fix, at: Date.now() };
+        resolve(fix);
+      },
+      (err) => {
+        if (err && err.code === 1) locationDenied = true; // PERMISSION_DENIED
+        resolve(null);
+      },
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
     );
   });
@@ -814,6 +827,30 @@ function bindViewer() {
 
 // ---------- Dictation: tap, talk, tap — the words appear. No audio is kept. ----------
 
+// The microphone is opened once and reused for a few minutes, so the phone or browser asks for permission once,
+// not on every tap. It is released after a quiet spell and whenever the app goes to the background.
+const MIC_IDLE_MS = 3 * 60 * 1000;
+let micStream = null;
+let micIdleTimer = null;
+
+function releaseMic() {
+  clearTimeout(micIdleTimer);
+  if (micStream) micStream.getTracks().forEach((track) => track.stop());
+  micStream = null;
+}
+
+async function getMicStream() {
+  clearTimeout(micIdleTimer);
+  if (micStream && !micStream.getAudioTracks().every((track) => track.readyState === "live" && !track.muted)) releaseMic();
+  if (!micStream) micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  return micStream;
+}
+
+function releaseMicSoon() {
+  clearTimeout(micIdleTimer);
+  micIdleTimer = setTimeout(releaseMic, MIC_IDLE_MS);
+}
+
 function attachDictation(button, label, { idleText, getTarget, onText, onStateChange }) {
   let recorder = null;
   let active = false;
@@ -832,7 +869,7 @@ function attachDictation(button, label, { idleText, getTarget, onText, onStateCh
 
     let stream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream = await getMicStream();
     } catch (err) {
       setStatus("Microphone permission denied");
       console.warn(err);
@@ -846,7 +883,7 @@ function attachDictation(button, label, { idleText, getTarget, onText, onStateCh
       if (e.data.size > 0) chunks.push(e.data);
     });
     recorder.addEventListener("stop", async () => {
-      stream.getTracks().forEach((track) => track.stop());
+      releaseMicSoon();
       active = false;
       button.classList.remove("is-recording");
       button.disabled = true;
@@ -1360,8 +1397,10 @@ async function init() {
     }
   };
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) flushPendingSave();
-    else reconcileFields();
+    if (document.hidden) {
+      flushPendingSave();
+      releaseMic(); // never keep the microphone open in the background
+    } else reconcileFields();
   });
   window.addEventListener("pagehide", flushPendingSave);
   window.addEventListener("pageshow", reconcileFields);
