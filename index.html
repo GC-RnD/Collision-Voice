@@ -144,37 +144,35 @@
       </template>
     </section>
 
-    <!-- Notes summary and export -->
+    <!-- Report: notes, send/save buttons, next job -->
     <section class="card no-print" aria-labelledby="export-heading">
-      <h2 id="export-heading">Notes &amp; Send</h2>
+      <h2 id="export-heading">Report</h2>
+      <p class="send-summary" id="sendSummary"></p>
 
-      <label class="field">
-        <span>All notes in one place (image numbers included)</span>
-        <textarea id="notesSummary" rows="9" readonly></textarea>
-      </label>
-      <div class="action-row">
-        <button type="button" class="btn btn--secondary" id="copyNotesBtn">Copy all notes</button>
+      <details class="notes-details">
+        <summary>View all notes</summary>
+        <textarea id="notesSummary" rows="9" readonly aria-label="All notes in one place, image numbers included"></textarea>
+      </details>
+
+      <div class="send-bar">
+        <button type="button" class="send-btn" id="emailBtn">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="m16 6-4-4-4 4"/><path d="M12 2v13"/></svg>
+          <span class="send-btn__text">Share<small></small></span>
+        </button>
+        <button type="button" class="send-btn" id="saveBtn">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+          <span class="send-btn__text">Save<small></small></span>
+        </button>
+        <button type="button" class="send-btn" id="uploadBtn" disabled title="Coming later">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 13v8"/><path d="M4 14.9A7 7 0 1 1 15.7 8h1.8a4.5 4.5 0 0 1 2.5 8.2"/><path d="m8 17 4-4 4 4"/></svg>
+          <span class="send-btn__text">Upload</span>
+        </button>
       </div>
 
-      <h3>Send this job</h3>
-      <p class="hint">Packs every photo, the notes and the data into a .zip. Large jobs are split into several files so each one fits in an email.</p>
-      <label class="field field--narrow">
-        <span>Photo size</span>
-        <select id="exportSize">
-          <option value="original">Original size (largest)</option>
-          <option value="reduced">Reduced (about 2000 px — smaller emails)</option>
-        </select>
-      </label>
-      <div class="action-row">
-        <button type="button" class="btn btn--primary" id="buildPackageBtn">Prepare package</button>
+      <div class="job-footer">
+        <p class="hint" id="storageInfo"></p>
+        <button type="button" class="btn btn--danger-solid" id="newJobBtn">New job</button>
       </div>
-      <div id="packageParts" class="package-parts"></div>
-
-      <h3>Next job</h3>
-      <div class="action-row">
-        <button type="button" class="btn btn--danger-solid" id="newJobBtn">Start new job (clears this one)</button>
-      </div>
-      <p class="hint" id="storageInfo"></p>
     </section>
 
   </main>

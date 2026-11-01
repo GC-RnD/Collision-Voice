@@ -4,7 +4,6 @@
 const LEGACY_STORAGE_KEY = "collisionVoice.workfileDraft.v1";
 const SCHEMA_VERSION = "0.2.0";
 const PART_LIMIT_BYTES = 15 * 1024 * 1024; // keeps each emailed .zip under typical attachment limits
-const REDUCED_MAX_EDGE = 2000;
 const THUMB_MAX_EDGE = 320;
 
 const el = (id) => document.getElementById(id);
@@ -380,18 +379,6 @@ async function makeThumbnail(blob) {
   try {
     const { canvas } = scaledCanvas(img, img.naturalWidth, img.naturalHeight, THUMB_MAX_EDGE);
     return await canvasToBlob(canvas, 0.8);
-  } finally {
-    release();
-  }
-}
-
-/** Returns a smaller copy of a photo (longest side capped), or the original if it is already small. */
-async function resizePhoto(blob, maxEdge) {
-  const { img, release } = await loadImage(blob);
-  try {
-    const { canvas, scale } = scaledCanvas(img, img.naturalWidth, img.naturalHeight, maxEdge);
-    if (scale >= 1) return blob;
-    return await canvasToBlob(canvas, 0.85);
   } finally {
     release();
   }
@@ -975,19 +962,7 @@ function buildNotesText() {
 function refreshNotesSummary() {
   const box = el("notesSummary");
   if (box) box.value = buildNotesText();
-}
-
-async function copyNotes() {
-  const text = buildNotesText();
-  try {
-    await navigator.clipboard.writeText(text);
-    setStatus("All notes copied");
-  } catch {
-    const box = el("notesSummary");
-    box.focus();
-    box.select();
-    setStatus(document.execCommand("copy") ? "All notes copied" : "Select the notes and copy them manually");
-  }
+  refreshSendSummary();
 }
 
 // ---------- Export: package (.zip), JSON, new job ----------
@@ -1075,22 +1050,23 @@ function groupIntoParts(files) {
   return parts;
 }
 
-async function buildPackages() {
+async function buildPackages(quiet = false) {
+  const progress = (text) => {
+    if (!quiet) setStatus(text);
+  };
   const entries = allPhotos();
   if (!entries.length) {
-    setStatus("Add at least one photo before preparing a package");
+    progress("Add at least one photo before sending");
     return [];
   }
-  const reduced = el("exportSize").value === "reduced";
   const createdAt = new Date();
   const files = [];
 
   for (let i = 0; i < entries.length; i++) {
     const { photo } = entries[i];
-    setStatus(`Preparing photo ${i + 1} of ${entries.length}…`);
-    let blob = await Store.getBlob(`photo:${photo.id}`);
+    progress(`Preparing photo ${i + 1} of ${entries.length}…`);
+    const blob = await Store.getBlob(`photo:${photo.id}`);
     if (!blob) continue;
-    if (reduced) blob = await resizePhoto(blob, REDUCED_MAX_EDGE);
     files.push({ photo, name: photoFileName(photo), blob, sha256: await sha256Hex(blob) });
   }
 
@@ -1098,7 +1074,7 @@ async function buildPackages() {
   const manifest = {
     schemaVersion: SCHEMA_VERSION,
     createdAt: createdAt.toISOString(),
-    photoSize: reduced ? `reduced (longest side ${REDUCED_MAX_EDGE}px)` : "original",
+    photoSize: "original",
     partCount: groups.length,
     files: groups.flatMap((group, index) =>
       group.map((file) => ({
@@ -1120,7 +1096,7 @@ async function buildPackages() {
   const base = packageBaseName(createdAt);
   const parts = [];
   for (let index = 0; index < groups.length; index++) {
-    setStatus(`Building package ${index + 1} of ${groups.length}…`);
+    progress(`Building package ${index + 1} of ${groups.length}…`);
     const zipEntries = [...shared, ...groups[index].map((file) => ({ name: file.name, data: file.blob }))];
     const blob = await Zip.build(zipEntries, createdAt);
     const suffix = groups.length > 1 ? `_part-${index + 1}-of-${groups.length}` : "";
@@ -1144,11 +1120,14 @@ function markPartDelivered(index) {
     return;
   }
   if (state.workfile.modifiedAt && state.workfile.modifiedAt > packageState.builtAt) {
-    setStatus("This job changed after the package was prepared — prepare it again");
+    setStatus("This job changed after the package was built — send it again");
     return;
   }
   state.workfile.lastExportedAt = new Date().toISOString();
-  saveState().then(() => setStatus("Marked as exported"));
+  saveState().then(() => {
+    setStatus("Marked as sent");
+    refreshSendSummary();
+  });
 }
 
 /** Email subject/body so the receiver can tell at a glance which job a zip belongs to. */
@@ -1173,61 +1152,124 @@ function shareBody(part) {
   return lines.filter(Boolean).join("\n");
 }
 
-function renderPackageParts(parts) {
-  const box = el("packageParts");
-  box.innerHTML = "";
-  parts.forEach((part, index) => {
-    const row = document.createElement("div");
-    row.className = "package-part";
+const canShareFiles = () => {
+  try {
+    return !!(navigator.canShare && navigator.canShare({ files: [new File(["x"], "a.zip", { type: "application/zip" })] }));
+  } catch {
+    return false;
+  }
+};
 
-    const text = document.createElement("span");
-    text.className = "package-part__text";
-    text.textContent = `${part.label} — ${formatBytes(part.blob.size)} · ${part.photoCount} photo${part.photoCount === 1 ? "" : "s"}`;
-    row.appendChild(text);
-
-    const file = new File([part.blob], part.name, { type: "application/zip" });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      const shareBtn = document.createElement("button");
-      shareBtn.type = "button";
-      shareBtn.className = "btn btn--primary";
-      shareBtn.textContent = "Email / share";
-      shareBtn.addEventListener("click", async () => {
-        try {
-          await navigator.share({ files: [file], title: shareSubject(part), text: shareBody(part) });
-          markPartDelivered(index);
-        } catch (err) {
-          if (err && err.name !== "AbortError") setStatus("Sharing failed — try Download instead");
-        }
-      });
-      row.appendChild(shareBtn);
-    }
-
-    const downloadBtn = document.createElement("button");
-    downloadBtn.type = "button";
-    downloadBtn.className = "btn btn--secondary";
-    downloadBtn.textContent = "Download";
-    downloadBtn.addEventListener("click", () => {
-      downloadBlob(part.blob, part.name);
-      markPartDelivered(index);
-    });
-    row.appendChild(downloadBtn);
-
-    box.appendChild(row);
-  });
+/** Opens the share sheet (Mail, Messages, AirDrop…) for one zip. */
+function sharePart(part) {
+  const file = new File([part.blob], part.name, { type: "application/zip" });
+  return navigator.share({ files: [file], title: shareSubject(part), text: shareBody(part) });
 }
 
-async function preparePackage() {
-  const button = el("buildPackageBtn");
-  button.disabled = true;
+// ---------- Send: the zip is built in the background so Email and Save react instantly ----------
+
+let builtPackage = null; // { key, parts } — valid until the job changes
+let buildingPackage = null; // { key, promise }
+let prebuildTimer = null;
+const nextPart = { email: 0, save: 0 }; // jobs over ~15 MB go out as several files; which one is next
+
+const packageKey = () => state.workfile.modifiedAt || "";
+const readyParts = () => (builtPackage && builtPackage.key === packageKey() ? builtPackage.parts : null);
+
+function getPackageParts({ quiet = false } = {}) {
+  const ready = readyParts();
+  if (ready) return Promise.resolve(ready);
+  const key = packageKey();
+  if (buildingPackage && buildingPackage.key === key) return buildingPackage.promise;
+  const promise = buildPackages(quiet)
+    .then((parts) => {
+      builtPackage = parts.length ? { key, parts } : null;
+      return parts;
+    })
+    .finally(() => {
+      if (buildingPackage && buildingPackage.promise === promise) buildingPackage = null;
+    });
+  buildingPackage = { key, promise };
+  return promise;
+}
+
+/** Waits for a quiet moment after the last change, then builds the zip so the next tap doesn't have to. */
+function schedulePrebuild() {
+  clearTimeout(prebuildTimer);
+  if (!allPhotos().length) return;
+  prebuildTimer = setTimeout(() => getPackageParts({ quiet: true }).then(refreshSendButtons).catch(() => {}), 4000);
+}
+
+/** For a job that needs several emails, the button says which part is next. */
+function refreshSendButtons() {
+  const parts = readyParts();
+  for (const mode of ["email", "save"]) {
+    el(`${mode}Btn`).querySelector("small").textContent = parts && parts.length > 1 ? `part ${nextPart[mode] + 1} of ${parts.length}` : "";
+  }
+}
+
+function refreshSendSummary() {
+  const line = el("sendSummary");
+  const photos = allPhotos();
+  line.textContent = "";
+  if (builtPackage && builtPackage.key !== packageKey()) {
+    builtPackage = null;
+    nextPart.email = nextPart.save = 0;
+  }
+  refreshSendButtons();
+  if (!photos.length) {
+    line.textContent = "No photos yet.";
+    return;
+  }
+  const bytes = photos.reduce((sum, { photo }) => sum + (photo.bytes || 0), 0);
+  const emails = Math.max(1, Math.ceil(bytes / PART_LIMIT_BYTES));
+  const strong = document.createElement("strong");
+  strong.textContent = `${photos.length} photo${photos.length === 1 ? "" : "s"}`;
+  line.append(strong, ` · ${formatBytes(bytes)} · ${emails === 1 ? "1 email" : `${emails} emails`}`);
+
+  const { lastExportedAt, modifiedAt } = state.workfile;
+  if (lastExportedAt && (!modifiedAt || lastExportedAt >= modifiedAt)) {
+    const sent = document.createElement("span");
+    sent.className = "is-sent";
+    sent.textContent = ` · ✓ Sent or saved ${new Date(lastExportedAt).toLocaleTimeString([], { timeStyle: "short" })}`;
+    line.append(sent);
+  }
+  schedulePrebuild();
+}
+
+/**
+ * Share opens the share sheet (Mail, OneDrive, AirDrop, Files…); Save downloads the zip. If the zip is already built (it normally is) the tap acts at once,
+ * which the phone requires for the share sheet. A job needing several files sends one per tap.
+ */
+async function sendReport(mode) {
+  const button = el(`${mode}Btn`);
+  const sendOne = async (parts) => {
+    const index = nextPart[mode] % parts.length;
+    if (mode === "email") await sharePart(parts[index]);
+    else downloadBlob(parts[index].blob, parts[index].name);
+    markPartDelivered(index);
+    nextPart[mode] = (index + 1) % parts.length;
+  };
   try {
-    const parts = await buildPackages();
-    renderPackageParts(parts);
-    if (parts.length) setStatus(`Package ready (${parts.length} file${parts.length === 1 ? "" : "s"})`);
+    const ready = readyParts();
+    if (ready) {
+      await sendOne(ready);
+      return;
+    }
+    button.disabled = true;
+    button.querySelector("small").textContent = "preparing…";
+    const parts = await getPackageParts();
+    if (parts.length) await sendOne(parts);
   } catch (err) {
-    console.error("Could not prepare the package", err);
-    setStatus("Could not prepare the package — try the reduced photo size");
+    if (err && err.name === "AbortError") return; // closed the share sheet
+    if (err && err.name === "NotAllowedError") setStatus("Ready — tap Share again"); // the phone wants a fresh tap after a wait
+    else {
+      console.error("Send failed", err);
+      setStatus("That didn't work — please try again");
+    }
   } finally {
     button.disabled = false;
+    refreshSendButtons();
   }
 }
 
@@ -1258,7 +1300,8 @@ async function startNewJob() {
   state = createEmptyState();
   await saveState();
   fillWorkfileFields();
-  el("packageParts").innerHTML = "";
+  builtPackage = null;
+  nextPart.email = nextPart.save = 0;
   renderObservations();
   addObservation({ silent: true });
   refreshStartedAt();
@@ -1290,8 +1333,10 @@ async function init() {
   bindViewer();
 
   el("addObservationBtn").addEventListener("click", () => addObservation());
-  el("copyNotesBtn").addEventListener("click", copyNotes);
-  el("buildPackageBtn").addEventListener("click", preparePackage);
+  el("emailBtn").addEventListener("click", () => sendReport("email"));
+  el("saveBtn").addEventListener("click", () => sendReport("save"));
+  // Computers have no share sheet, so Share only appears where the phone can offer it.
+  if (!canShareFiles()) el("emailBtn").hidden = true;
   el("newJobBtn").addEventListener("click", startNewJob);
 
   if (state.observations.length === 0) {
