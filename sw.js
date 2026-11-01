@@ -1,5 +1,5 @@
 // Collision Voice — minimal app-shell cache for installability/offline start.
-const CACHE_NAME = "collision-voice-shell-v27";
+const CACHE_NAME = "collision-voice-shell-v28";
 // Large, rarely-changing files (barcode/plate readers and their models). Kept in their own cache so an app update
 // doesn't throw away ~25 MB and make the phone download it again.
 const ASSET_CACHE = "collision-voice-assets-v1";
