@@ -431,226 +431,7 @@ async function stampPhoto(file, location, capturedAt) {
   }
 }
 
-// ---------- Scan the VIN or license plate with the camera ----------
-// Text is read on the device with Tesseract (WASM). The photo is not kept; only the recognised text is used.
-
-const TESSERACT_CDN = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
-const VIN_CHARS = "ABCDEFGHJKLMNPRSTUVWXYZ0123456789"; // real VINs never use I, O or Q
-const PLATE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-let ocrWorkerPromise = null;
-
-function loadScriptOnce(src) {
-  return new Promise((resolve, reject) => {
-    if (window.Tesseract) {
-      resolve();
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = src;
-    script.onload = resolve;
-    script.onerror = () => reject(new Error("Could not load the text reader"));
-    document.head.appendChild(script);
-  });
-}
-
-/** Loads the text reader once and reuses it. Needs the internet the first time, then works from the browser's cache. */
-function getOcrWorker(onStatus) {
-  if (!ocrWorkerPromise) {
-    ocrWorkerPromise = (async () => {
-      onStatus?.("Loading the text reader (first time only)…");
-      await loadScriptOnce(TESSERACT_CDN);
-      return window.Tesseract.createWorker("eng");
-    })().catch((err) => {
-      ocrWorkerPromise = null; // allow a retry
-      throw err;
-    });
-  }
-  return ocrWorkerPromise;
-}
-
-const VIN_VALUES = {
-  A: 1, B: 2, C: 3, D: 4, E: 5, F: 6, G: 7, H: 8, J: 1, K: 2, L: 3, M: 4, N: 5,
-  P: 7, R: 9, S: 2, T: 3, U: 4, V: 5, W: 6, X: 7, Y: 8, Z: 9,
-};
-const VIN_WEIGHTS = [8, 7, 6, 5, 4, 3, 2, 10, 0, 9, 8, 7, 6, 5, 4, 3, 2];
-
-/** The standard North American VIN check: the 9th character must match a sum of the others. Not all non-US VINs follow it. */
-function vinCheckDigitOk(vin) {
-  if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) return false;
-  let sum = 0;
-  for (let i = 0; i < 17; i++) {
-    const ch = vin[i];
-    sum += (/\d/.test(ch) ? Number(ch) : VIN_VALUES[ch]) * VIN_WEIGHTS[i];
-  }
-  const remainder = sum % 11;
-  return vin[8] === (remainder === 10 ? "X" : String(remainder));
-}
-
-/** Finds 17-character VIN-like strings in OCR text, best first (a passing check digit ranks highest). */
-function extractVinCandidates(text) {
-  const tokens = text.toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);
-  const scored = new Map();
-  const consider = (candidate, base) => {
-    if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(candidate)) return;
-    const score = base + (vinCheckDigitOk(candidate) ? 10 : 0);
-    if (!scored.has(candidate) || scored.get(candidate) < score) scored.set(candidate, score);
-  };
-  for (let i = 0; i < tokens.length; i++) {
-    if (tokens[i].length === 17) consider(tokens[i], 2);
-    let joined = "";
-    for (let j = i; j < Math.min(tokens.length, i + 4); j++) {
-      joined += tokens[j];
-      if (joined.length >= 17) {
-        consider(joined.slice(0, 17), j === i ? 1 : 1.5); // pieces split by spaces are joined back together
-        break;
-      }
-    }
-    if (tokens[i].length > 17) {
-      for (let k = 0; k + 17 <= tokens[i].length; k++) consider(tokens[i].slice(k, k + 17), 0.5);
-    }
-  }
-  return [...scored.entries()].sort((a, b) => b[1] - a[1]).map((entry) => entry[0]);
-}
-
-// Words printed on plates that are not the plate number.
-const PLATE_STOP_WORDS = new Set(
-  ("ALABAMA ALASKA ARIZONA ARKANSAS CALIFORNIA COLORADO CONNECTICUT DELAWARE FLORIDA GEORGIA HAWAII IDAHO " +
-    "ILLINOIS INDIANA IOWA KANSAS KENTUCKY LOUISIANA MAINE MARYLAND MASSACHUSETTS MICHIGAN MINNESOTA MISSISSIPPI " +
-    "MISSOURI MONTANA NEBRASKA NEVADA NEW YORK MEXICO JERSEY HAMPSHIRE OHIO OKLAHOMA OREGON PENNSYLVANIA RHODE " +
-    "ISLAND CAROLINA DAKOTA TENNESSEE TEXAS UTAH VERMONT VIRGINIA WASHINGTON WEST WISCONSIN WYOMING NORTH SOUTH " +
-    "DISTRICT COLUMBIA UNITED STATES STATE AMERICA THE AND LICENSE PLATE EXPIRES REGISTERED TAGS DMV PASSENGER " +
-    "COMMERCIAL MOTORCYCLE SUNSHINE LONE STAR GOLDEN EMPIRE GARDEN GRANITE EVERGREEN PEACH BUCKEYE HAWKEYE LIVE " +
-    "FREE DIE BIRTHPLACE AVIATION FIRST FLIGHT LAND LINCOLN ENCHANTMENT LIBERTY SCENIC WILD WONDERFUL DISCOVER " +
-    "EXPLORE BEAUTIFUL GREAT LAKES MOUNTAIN").split(" ")
-);
-
-/** Ranks plate-number guesses from OCR words: taller, clearer, letters-and-digits text first. */
-function extractPlateCandidates(words, imageHeight) {
-  const scored = new Map();
-  words.forEach((word) => {
-    const text = (word.text || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-    if (text.length < 3 || text.length > 8 || PLATE_STOP_WORDS.has(text)) return;
-    const hasDigit = /\d/.test(text);
-    const hasLetter = /[A-Z]/.test(text);
-    const height = word.bbox ? word.bbox.y1 - word.bbox.y0 : 0;
-    const confidence = word.confidence || 0;
-    const score =
-      confidence +
-      text.length * 4 +
-      (hasDigit && hasLetter ? 15 : 0) +
-      (hasDigit ? 5 : 0) +
-      (imageHeight ? (height / imageHeight) * 120 : 0);
-    if (!scored.has(text) || scored.get(text).score < score) scored.set(text, { text, confidence, score });
-  });
-  return [...scored.values()].sort((a, b) => b.score - a.score).slice(0, 4);
-}
-
-/** Greyscale + contrast stretch (optionally inverted) to help the text reader on glare and dark plates. */
-async function prepareOcrCanvas(file, invert) {
-  const { img, release } = await loadImage(file);
-  const { canvas } = scaledCanvas(img, img.naturalWidth, img.naturalHeight, 2000);
-  release();
-  const ctx = canvas.getContext("2d");
-  const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const px = image.data;
-  const gray = new Uint8ClampedArray(px.length / 4);
-  const histogram = new Uint32Array(256);
-  for (let i = 0, g = 0; i < px.length; i += 4, g++) {
-    const value = Math.round(0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2]);
-    gray[g] = value;
-    histogram[value]++;
-  }
-  const cut = gray.length * 0.01;
-  let low = 0;
-  let high = 255;
-  for (let sum = 0; low < 255 && (sum += histogram[low]) < cut; low++);
-  for (let sum = 0; high > 0 && (sum += histogram[high]) < cut; high--);
-  const span = Math.max(1, high - low);
-  for (let i = 0, g = 0; i < px.length; i += 4, g++) {
-    let value = Math.min(255, Math.max(0, ((gray[g] - low) * 255) / span));
-    if (invert) value = 255 - value;
-    px[i] = px[i + 1] = px[i + 2] = value;
-  }
-  ctx.putImageData(image, 0, 0);
-  return canvas;
-}
-
-async function recognizeText(file, whitelist, invert, onStatus) {
-  const worker = await getOcrWorker(onStatus);
-  onStatus?.("Reading the photo…");
-  await worker.setParameters({ tessedit_char_whitelist: whitelist, tessedit_pageseg_mode: "11" });
-  const canvas = await prepareOcrCanvas(file, invert);
-  const { data } = await worker.recognize(canvas, {}, { text: true, blocks: true });
-  let words = data.words || [];
-  if (!words.length && data.blocks) {
-    words = data.blocks.flatMap((block) =>
-      (block.paragraphs || []).flatMap((p) => (p.lines || []).flatMap((line) => line.words || []))
-    );
-  }
-  return { text: data.text || "", words, height: canvas.height };
-}
-
-function setScanHint(kind, message, { warn = false, choices = [] } = {}) {
-  const hint = document.querySelector(`[data-hint="${kind}"]`);
-  hint.textContent = message;
-  hint.classList.toggle("field-hint--warn", warn);
-  choices.forEach((choice) => {
-    const label = typeof choice === "string" ? choice : choice.label;
-    const chip = document.createElement("button");
-    chip.type = "button";
-    chip.className = "chip";
-    chip.textContent = label;
-    chip.addEventListener("click", () => (typeof choice === "string" ? applyScannedValue(kind, choice) : choice.onPick()));
-    hint.appendChild(chip);
-  });
-}
-
-function applyScannedValue(kind, value) {
-  const input = el(kind === "vin" ? "vehicleVin" : "vehiclePlate");
-  input.value = value;
-  input.dispatchEvent(new Event("input", { bubbles: true })); // saves it like typing would
-}
-
-async function scanVehicleText(kind, file) {
-  const onStatus = (message) => setScanHint(kind, message);
-  if (kind === "vin") {
-    let candidates = [];
-    for (const invert of [false, true]) {
-      const { text } = await recognizeText(file, VIN_CHARS, invert, onStatus);
-      candidates = extractVinCandidates(text);
-      if (candidates.length && vinCheckDigitOk(candidates[0])) break; // good enough; otherwise try inverted
-    }
-    if (!candidates.length) {
-      setScanHint("vin", "Couldn't find a 17-character VIN. Try again closer, with less glare, or type it in.", { warn: true });
-      return;
-    }
-    applyScannedValue("vin", candidates[0]);
-    if (vinCheckDigitOk(candidates[0])) {
-      setScanHint("vin", "VIN read ✓ and the check digit matches. Please still compare it with the car.");
-    } else {
-      setScanHint("vin", "VIN read, but the check digit doesn't match — look closely at 0/O, 1/I, 5/S, 8/B. (Some non-US VINs don't use the check.)", {
-        warn: true,
-        choices: candidates.slice(1, 3),
-      });
-    }
-  } else {
-    const { words, height } = await recognizeText(file, PLATE_CHARS, false, onStatus);
-    const candidates = extractPlateCandidates(words, height);
-    if (!candidates.length) {
-      setScanHint("plate", "Couldn't read a plate number. Try again straight-on with less glare, or type it in.", { warn: true });
-      return;
-    }
-    applyScannedValue("plate", candidates[0].text);
-    const unsure = candidates[0].confidence < 70;
-    setScanHint(
-      "plate",
-      unsure
-        ? "Plate read, but the reader wasn't sure — check every character against the car."
-        : "Plate read — please check it against the car.",
-      { warn: unsure, choices: candidates.slice(1).map((c) => c.text) }
-    );
-  }
-}
+// VIN/plate scanning (barcode reader, plate reader, camera overlay) lives in scanner.js.
 
 // ---------- Look up year / make / model from the VIN (US government NHTSA vPIC service) ----------
 // Needs the internet. Only the VIN is sent; the service is free and public.
@@ -725,29 +506,6 @@ async function runVinDecode(vin) {
     console.warn("VIN lookup failed", err);
     setScanHint("vin-decode", "Couldn't look up the VIN (no internet?). Enter the vehicle by hand.", { warn: true });
   }
-}
-
-function bindScanButtons() {
-  document.querySelectorAll("[data-scan]").forEach((input) => {
-    input.addEventListener("change", async () => {
-      const file = input.files && input.files[0];
-      if (!file) return;
-      const kind = input.dataset.scan;
-      const button = input.closest(".scan-btn");
-      button.classList.add("is-busy");
-      input.disabled = true;
-      try {
-        await scanVehicleText(kind, file);
-      } catch (err) {
-        console.error("Scan failed", err);
-        setScanHint(kind, "Couldn't read the photo. The first scan needs an internet connection; you can also type it in.", { warn: true });
-      } finally {
-        input.value = "";
-        input.disabled = false;
-        button.classList.remove("is-busy");
-      }
-    });
-  });
 }
 
 // ---------- Photo storage helpers ----------
@@ -1246,6 +1004,16 @@ function safeName(text) {
   return (text || "job").trim().replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "job";
 }
 
+/** Zip file name: claim number, customer (if entered) and the date/time it was prepared, so files never overwrite each other. */
+function packageBaseName(date) {
+  const two = (n) => String(n).padStart(2, "0");
+  const stamp = `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())}_${two(date.getHours())}${two(date.getMinutes())}`;
+  const { assignmentId, customerName } = state.workfile;
+  const claim = (assignmentId || "").trim() ? safeName(assignmentId) : "inspection";
+  const customer = (customerName || "").trim() ? safeName(customerName).slice(0, 24) : "";
+  return [claim, customer, stamp].filter(Boolean).join("_");
+}
+
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -1321,13 +1089,13 @@ async function buildPackages() {
     { name: "manifest.json", data: JSON.stringify(manifest, null, 2) },
   ];
 
-  const base = safeName(state.workfile.assignmentId);
+  const base = packageBaseName(createdAt);
   const parts = [];
   for (let index = 0; index < groups.length; index++) {
     setStatus(`Building package ${index + 1} of ${groups.length}…`);
     const zipEntries = [...shared, ...groups[index].map((file) => ({ name: file.name, data: file.blob }))];
     const blob = await Zip.build(zipEntries, createdAt);
-    const suffix = groups.length > 1 ? `-part-${index + 1}-of-${groups.length}` : "";
+    const suffix = groups.length > 1 ? `_part-${index + 1}-of-${groups.length}` : "";
     parts.push({
       name: `${base}${suffix}.zip`,
       label: groups.length > 1 ? `Part ${index + 1} of ${groups.length}` : "Package",

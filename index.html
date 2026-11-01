@@ -50,6 +50,19 @@
 
       <h3>Vehicle</h3>
       <div class="field-grid">
+        <div class="field field--full">
+          <label for="vehicleVin">VIN</label>
+          <div class="input-with-action">
+            <input type="text" id="vehicleVin" placeholder="17-character VIN" maxlength="17" autocapitalize="characters" autocomplete="off" />
+            <button type="button" class="scan-btn" id="scanVinBtn" title="Scan the VIN barcode" aria-label="Scan the VIN barcode">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="currentColor">
+                <path d="M2 5h2v14H2zM6 5h1v14H6zM9 5h3v14H9zM14 5h1v14h-1zM17 5h2v14h-2zM21 5h1v14h-1z"></path>
+              </svg>
+            </button>
+          </div>
+          <small class="field-hint" data-hint="vin" aria-live="polite"></small>
+          <small class="field-hint" data-hint="vin-decode" aria-live="polite"></small>
+        </div>
         <label class="field">
           <span>Year</span>
           <select id="vehicleYear"></select>
@@ -62,33 +75,22 @@
           <span>Model</span>
           <input type="text" id="vehicleModel" placeholder="Civic" />
         </label>
-        <div class="field field--full">
-          <label for="vehicleVin">VIN</label>
-          <div class="input-with-action">
-            <input type="text" id="vehicleVin" placeholder="17-character VIN" maxlength="17" autocapitalize="characters" autocomplete="off" />
-            <label class="scan-btn" title="Scan the VIN with the camera" aria-label="Scan the VIN with the camera">
-              📷
-              <input type="file" accept="image/*" capture="environment" data-scan="vin" hidden />
-            </label>
-          </div>
-          <small class="field-hint" data-hint="vin" aria-live="polite"></small>
-          <small class="field-hint" data-hint="vin-decode" aria-live="polite"></small>
-        </div>
-        <div class="field">
-          <label for="vehiclePlate">License plate</label>
-          <div class="input-with-action">
-            <input type="text" id="vehiclePlate" placeholder="ABC-1234" autocapitalize="characters" autocomplete="off" />
-            <label class="scan-btn" title="Scan the license plate with the camera" aria-label="Scan the license plate with the camera">
-              📷
-              <input type="file" accept="image/*" capture="environment" data-scan="plate" hidden />
-            </label>
-          </div>
-          <small class="field-hint" data-hint="plate" aria-live="polite"></small>
-        </div>
         <label class="field">
           <span>Color</span>
           <select id="vehicleColor"></select>
         </label>
+        <div class="field">
+          <label for="vehiclePlate">License plate</label>
+          <div class="input-with-action">
+            <input type="text" id="vehiclePlate" placeholder="ABC-1234" autocapitalize="characters" autocomplete="off" />
+            <button type="button" class="scan-btn" id="scanPlateBtn" title="Scan the license plate" aria-label="Scan the license plate">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="currentColor">
+                <path d="M9 4 7.2 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3.2L15 4H9zm3 4.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9zm0 2a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"></path>
+              </svg>
+            </button>
+          </div>
+          <small class="field-hint" data-hint="plate" aria-live="polite"></small>
+        </div>
       </div>
     </section>
 
@@ -202,8 +204,22 @@
     </div>
   </div>
 
+  <div class="scanner" id="scanner" hidden role="dialog" aria-modal="true" aria-label="Scan with the camera">
+    <video class="scanner__video" id="scannerVideo" playsinline muted></video>
+    <div class="scanner__frame" aria-hidden="true"></div>
+    <p class="scanner__hint" id="scannerHint">Starting the camera…</p>
+    <div class="scanner__actions">
+      <label class="btn btn--secondary">
+        Use a photo
+        <input type="file" accept="image/*" capture="environment" id="scannerPhoto" hidden />
+      </label>
+      <button type="button" class="btn btn--danger-solid" id="scannerCancel">Cancel</button>
+    </div>
+  </div>
+
   <script src="js/storage.js"></script>
   <script src="js/zip.js"></script>
+  <script src="js/scanner.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
