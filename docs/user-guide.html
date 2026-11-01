@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Collision Voice — Quick Start Guide</title>
+<style>
+  @page { size: Letter; margin: 0.6in 0.7in 0.7in; }
+  :root { --navy: #10243e; --orange: #e8601c; --muted: #5b6b7a; --line: #dde3ea; --soft: #f4f6f8; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", -apple-system, Roboto, Arial, sans-serif; color: #1c2733; font-size: 10.5pt; line-height: 1.45; margin: 0; }
+  h1 { font-size: 24pt; color: var(--navy); margin: 0.1in 0 0.05in; }
+  h2 { font-size: 14pt; color: var(--navy); margin: 0 0 0.08in; padding-bottom: 0.04in; border-bottom: 2px solid var(--orange); break-after: avoid; }
+  h3 { font-size: 11.5pt; color: var(--navy); margin: 0.12in 0 0.03in; break-after: avoid; }
+  p { margin: 0 0 0.08in; }
+  ul, ol { margin: 0.03in 0 0.1in; padding-left: 0.25in; }
+  li { margin-bottom: 0.03in; }
+  .cover { display: flex; align-items: center; gap: 0.25in; }
+  .cover img { height: 0.9in; }
+  .tagline { color: var(--muted); font-size: 12pt; margin: 0 0 0.15in; }
+  .box { background: var(--soft); border: 1px solid var(--line); border-radius: 8px; padding: 0.1in 0.15in; margin: 0.1in 0 0.15in; }
+  .box--tip { border-left: 4px solid var(--orange); }
+  .box p:last-child, .box ul:last-child, .box ol:last-child { margin-bottom: 0; }
+  .strip { display: flex; gap: 0.1in; margin: 0.1in 0 0.2in; }
+  .strip div { flex: 1; background: var(--navy); color: #fff; border-radius: 8px; padding: 0.09in 0.1in; font-size: 9.5pt; text-align: center; }
+  .strip b { display: block; font-size: 15pt; color: #ffb48a; }
+  .step { display: flex; gap: 0.25in; align-items: flex-start; margin-bottom: 0.2in; break-inside: avoid; }
+  .step__text { flex: 1; min-width: 0; }
+  .step__img { width: 2.35in; flex: none; text-align: center; }
+  .step__img--narrow { width: 1.9in; }
+  .step__img img { width: 100%; border: 1px solid var(--line); border-radius: 10px; }
+  .step__img figcaption { font-size: 8.5pt; color: var(--muted); margin-top: 0.04in; }
+  figure { margin: 0; }
+  .num { display: inline-block; width: 0.28in; height: 0.28in; line-height: 0.28in; text-align: center; border-radius: 50%; background: var(--orange); color: #fff; font-weight: 700; margin-right: 0.08in; font-size: 11pt; }
+  .btn { display: inline-block; border: 1px solid #b8c4d0; border-radius: 6px; padding: 0 0.07in; background: #fff; font-weight: 600; font-size: 9.5pt; white-space: nowrap; }
+  table { border-collapse: collapse; width: 100%; font-size: 9.5pt; }
+  th, td { border: 1px solid var(--line); padding: 0.05in 0.09in; text-align: left; vertical-align: top; }
+  th { background: var(--soft); color: var(--navy); }
+  tr { break-inside: avoid; }
+  .pagebreak { break-before: page; }
+  .small { font-size: 9pt; color: var(--muted); }
+  code { font-family: Consolas, monospace; font-size: 9.5pt; background: var(--soft); padding: 0 0.03in; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <img src="../icons/Collision-Voice.png" alt="Collision Voice" />
+</div>
+<h1>Quick Start Guide</h1>
+<p class="tagline">Photograph the damage, say what you see, and send the whole job in one tap.</p>
+
+<p><b>Collision Voice</b> runs on your iPhone like any other app. For each vehicle you enter a few details, take photos of the damage, and <i>talk</i> to describe what you see — the app types your words for you. When you're done, one button sends everything as a single file you can open on your computer.</p>
+
+<div class="strip">
+  <div><b>1</b>Enter the job</div>
+  <div><b>2</b>Scan the VIN and plate</div>
+  <div><b>3</b>Photo + dictate</div>
+  <div><b>4</b>Check the notes</div>
+  <div><b>5</b>Share</div>
+</div>
+
+<h2>Set up (once)</h2>
+<ol>
+  <li>On your iPhone, open <b>Safari</b> and go to <b>gc-rnd.github.io/Collision-Voice</b></li>
+  <li>Tap the <b>Share</b> button (square with an arrow) and choose <b>Add to Home Screen</b>. Now it opens like an app, full screen.</li>
+  <li>When asked, tap <b>Allow</b> for the <b>camera</b>, <b>microphone</b> and <b>location</b>. (Location is only used to stamp where each photo was taken.)</li>
+  <li>The first time you dictate, the app downloads a small speech model, and the first time you scan a plate it downloads a plate reader. Do these once with a good connection. After that they work without internet.</li>
+</ol>
+<div class="box box--tip"><p><b>Everything is saved on your phone as you go.</b> If you close the app, lock the phone or lose signal, your job is still there when you come back. Nothing is cleared until you tap <b>New job</b>.</p></div>
+
+<h2 class="pagebreak">Doing an inspection</h2>
+
+<div class="step">
+  <div class="step__text">
+    <h3><span class="num">1</span>Enter the job details</h3>
+    <p>At the top of the screen, fill in the <b>Assignment / Claim #</b>, the <b>Customer name</b> and your name as <b>Inspector</b>. Choose the <b>Inspection type</b> (Initial, Supplement, Re-inspection, Final or Total loss).</p>
+    <p>The <b>start time</b> appears by itself as soon as you begin — you don't type it.</p>
+
+    <h3><span class="num">2</span>Describe the vehicle</h3>
+    <p><b>VIN:</b> tap the small <b>barcode icon</b> in the VIN box and point the camera at the barcode (usually on the sticker inside the driver's door). It reads the barcode and fills in the VIN. Then the app looks up the <b>year, make and model</b> and fills those in too (this part needs internet).</p>
+    <p><b>License plate:</b> tap the <b>camera icon</b> in the plate box, line the plate up inside the frame and hold steady for a moment. The plate is typed in for you.</p>
+    <p><b>Color:</b> pick it from the list.</p>
+    <div class="box box--tip"><p><b>Always compare with the car.</b> The scanners are very good but not perfect. If a scan won't work, tap <span class="btn">Use a photo</span> on the camera screen, or simply type it in.</p></div>
+  </div>
+  <figure class="step__img">
+    <img src="guide-img/01-job-and-vehicle.png" alt="Job details and vehicle fields" />
+    <figcaption>Job details and vehicle. The icons inside the VIN and plate boxes start the scanners.</figcaption>
+  </figure>
+</div>
+
+<div class="step">
+  <div class="step__text">
+    <h3><span class="num">3</span>Add photos for each damage area</h3>
+    <p>Each <b>Area of Damage</b> is one place on the vehicle.</p>
+    <ol>
+      <li>Choose the <b>area</b> from the list (for example <i>Bumper Cover (Rear)</i>).</li>
+      <li>Tap <span class="btn">📷 Add photo</span> and take your pictures. Take as many as you need — the photos go straight in with no extra questions.</li>
+      <li>Tap <span class="btn">● Dictate overall note</span>, say what you see, then tap <b>Stop</b>. After a moment your words appear as text. You can also just type.</li>
+    </ol>
+    <p>Every photo gets a permanent <b>image number</b> (<b>#1, #2, #3…</b>) and is stamped with the <b>date, time and location</b> in its corner. A pencil next to a number means that photo already has a note.</p>
+    <p>Need another place on the car? Tap <span class="btn">+ Add observation</span> to start the next damage area. To drop one you don't need, tap <b>Remove</b>.</p>
+  </div>
+  <figure class="step__img">
+    <img src="guide-img/02-observation.png" alt="A damage area with three photos" />
+    <figcaption>One damage area with three photos and an overall note.</figcaption>
+  </figure>
+</div>
+
+<div class="step">
+  <div class="step__text">
+    <h3><span class="num">4</span>Add a note to each photo</h3>
+    <p>Tap any small photo to open it full screen. One row of buttons sits right under the photo, and the note is below it:</p>
+    <ul>
+      <li><span class="btn">● Dictate</span> — tap, describe <i>this photo</i>, tap <b>Stop</b>. The note is saved under that image number. Dictating again adds to the note. You can also type in the note box.</li>
+      <li><span class="btn">‹ Prev</span> and <span class="btn">Next ›</span> — move through your photos without closing.</li>
+      <li><span class="btn" style="background:#1d7a46;color:#fff;border-color:#1d7a46">Done</span> — close the photo and go back.</li>
+      <li><span class="btn">Delete</span> — removes the photo. It asks <b>"Are you sure?"</b> first, because it can't be undone.</li>
+    </ul>
+    <div class="box box--tip"><p><b>A fast way to work:</b> take all your photos first. Then open the first photo, dictate, tap <b>Next</b>, dictate, and keep going down the line. Speak close to the phone and in a normal voice. Dictation understands <b>English</b>.</p></div>
+  </div>
+  <figure class="step__img step__img--narrow">
+    <img src="guide-img/03-photo-viewer.png" alt="A photo open full screen with its note" />
+    <figcaption>A photo open full screen. The stamp in the corner shows where and when it was taken.</figcaption>
+  </figure>
+</div>
+
+<div class="step">
+  <div class="step__text">
+    <h3><span class="num">5</span>Check your notes</h3>
+    <p>Scroll to the bottom, to the <b>Report</b> card. It tells you how many photos you have, how big the job is and how many files it will be.</p>
+    <p>Tap <b>View all notes</b> to see everything in one place: the job details, the vehicle, and every image number with its note. This is a good last check before you send.</p>
+
+    <h3><span class="num">6</span>Share the job</h3>
+    <p>Tap <span class="btn">Share</span>. Your phone's share sheet opens, and you choose where the job goes:</p>
+    <ul>
+      <li><b>OneDrive</b> (or another cloud folder) — the job appears on your computer a moment later.</li>
+      <li><b>Mail</b> — email it to yourself or someone else.</li>
+      <li><b>Save to Files</b> — keep a copy on the phone.</li>
+      <li><b>AirDrop</b> — send straight to a Mac nearby.</li>
+    </ul>
+    <p>Everything — every photo (full size) and all the notes — goes as <b>one file</b>. A very large job is split into a few files; the Share button then says <b>part 1 of 2</b>, <b>part 2 of 2</b>… Tap Share once for each part.</p>
+    <p class="small">The <b>Upload</b> button is greyed out. It's saved for a future feature.</p>
+  </div>
+  <figure class="step__img">
+    <img src="guide-img/05-report-notes.png" alt="The Report card with all notes shown" />
+    <figcaption>The Report card: summary, all notes, and the Share button.</figcaption>
+  </figure>
+</div>
+
+<div class="box box--tip">
+  <p><b>Don't see OneDrive in the share sheet?</b> Scroll the row of app icons at the top all the way to the right and tap <b>More</b>. Switch <b>OneDrive</b> on and tap the green <b>+</b> to put it in your Favorites so it stays on the list. Or choose <b>Save to Files</b>, then <b>Browse → OneDrive</b>.</p>
+</div>
+
+<h3><span class="num">7</span>On your computer</h3>
+<p>Open the file from OneDrive (or your email). It is a <b>zip</b> file — right-click it and choose <b>Extract All</b>. Inside you'll find:</p>
+<ul>
+  <li>the <b>photos</b>, named <code>IMG-001.jpg</code>, <code>IMG-002.jpg</code>… The numbers match the image numbers in your notes.</li>
+  <li><code>notes.txt</code> — all your notes with their image numbers. Open it and copy what you need into your estimate.</li>
+  <li><code>inspection.json</code> and <code>manifest.json</code> — the same information in a form other software can read (you can ignore these).</li>
+</ul>
+<p>The file name starts with the claim number, then the customer and the date and time, for example <code>CLM-1042_Jane-Sample_2026-11-01_1259.zip</code>, so one job never overwrites another.</p>
+
+<h3><span class="num">8</span>Start the next job</h3>
+<p>When the job is shared, tap <span class="btn">New job</span> at the bottom right. This clears the photos and notes from the phone to make room. If you haven't shared the job since your last change, the app warns you <b>twice</b> before it deletes anything.</p>
+
+<h2 style="margin-top:0.2in">Good to know</h2>
+<ul>
+  <li><b>No signal?</b> You can still take photos, dictate and type. Only the VIN lookup (year, make, model) needs internet, plus the first-time downloads mentioned above.</li>
+  <li><b>Photos are full size.</b> The app never shrinks them. A job with many photos can be large, so use Wi-Fi when you share it.</li>
+  <li><b>Storage.</b> The Report card shows how much room your jobs use. If it says storage is almost full, share the job and start a new one.</li>
+  <li><b>Please don't clear Safari's website data</b> (Settings → Safari → Clear History and Website Data) while a job is unshared — that would delete it.</li>
+  <li><b>Updates are automatic.</b> If the app looks out of date, tap the <b>☰ menu</b> (top right) and choose <b>Check for updates</b>, or close the app completely and open it again. The same menu opens this guide and shows the <b>version number</b> — handy if you ever need to tell us which version you're using.</li>
+</ul>
+
+<h2>If something doesn't work</h2>
+<table>
+  <tr><th style="width:30%">What you see</th><th>What to try</th></tr>
+  <tr><td>Camera or microphone won't start</td><td>Go to <b>Settings → Safari → Camera / Microphone</b> (or the app's own entry) and set them to <b>Allow</b>. Then reopen the app.</td></tr>
+  <tr><td>"Nothing heard — try again"</td><td>Hold the phone closer, speak a little longer, and try again.</td></tr>
+  <tr><td>"Transcription failed"</td><td>The very first time, the speech model needs internet to download. Connect and try again.</td></tr>
+  <tr><td>The VIN barcode won't scan</td><td>Improve the light, hold steady, and fill the frame with the barcode. Tap <b>Use a photo</b> to take a still picture, or type the VIN. Not every VIN sticker has a barcode — the dashboard VIN plate usually doesn't.</td></tr>
+  <tr><td>Year, make and model didn't fill in</td><td>You need internet for the lookup, and the VIN must have all 17 characters. You can always pick them from the lists.</td></tr>
+  <tr><td>The plate was read wrong</td><td>Check it against the car. Try again with the plate flat on and well lit, or type it. The app may show a second guess you can tap.</td></tr>
+  <tr><td>"Ready — tap Share again"</td><td>Your phone wanted a fresh tap. Just tap <b>Share</b> again.</td></tr>
+  <tr><td>OneDrive isn't in the share sheet</td><td>See the tip in step 6, or use <b>Save to Files</b>.</td></tr>
+  <tr><td>"Storage full" message</td><td>Share the job, then tap <b>New job</b>.</td></tr>
+</table>
+
+<h2 style="margin-top:0.2in">Privacy</h2>
+<ul>
+  <li>Your photos and notes stay on <b>your phone</b> until <i>you</i> choose to share them.</li>
+  <li>Speech-to-text and the VIN barcode and plate readers all run <b>on the phone</b>. No voice recording is kept — only the text.</li>
+  <li>The only thing that goes over the internet by itself is the <b>VIN</b>, sent to the US government's free NHTSA service to look up the year, make and model.</li>
+</ul>
+
+<p class="small" style="margin-top:0.2in">Collision Voice Quick Start Guide · November 2026 · This guide describes the app as of this date; some features are still being added.</p>
+
+</body>
+</html>

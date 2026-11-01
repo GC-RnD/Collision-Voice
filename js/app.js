@@ -35,7 +35,7 @@ function createEmptyState() {
 }
 
 function createEmptyObservation() {
-  return { id: uid(), area: "", approved: false, transcript: "", photos: [] };
+  return { id: uid(), area: "", transcript: "", photos: [] };
 }
 
 /** Every photo in the job, oldest image number first. */
@@ -85,7 +85,7 @@ function normalizeState(saved) {
     obs.photos = Array.isArray(obs.photos) ? obs.photos : [];
     obs.area = obs.area || "";
     obs.transcript = obs.transcript || "";
-    obs.approved = !!obs.approved;
+    delete obs.approved; // the Approved checkbox was removed
     delete obs.audio; // recordings are no longer kept; the transcribed text is the record
     obs.photos.forEach((photo) => {
       photo.note = photo.note || "";
@@ -123,7 +123,7 @@ async function migrateLegacyDraft(legacy) {
         bytes: blob.size,
       });
     }
-    observations.push({ id: obs.id, area: obs.area, approved: obs.approved, transcript: obs.transcript, photos });
+    observations.push({ id: obs.id, area: obs.area, transcript: obs.transcript, photos });
   }
   return { workfile: legacy.workfile, vehicle: legacy.vehicle, observations };
 }
@@ -592,18 +592,8 @@ function renderObservation(obs, index) {
     scheduleAutosave();
   });
 
-  // Approved checkbox — approving locks Remove to prevent accidental deletion.
-  const approvedInput = node.querySelector('[data-field="approved"]');
-  const removeBtn = node.querySelector('[data-action="remove"]');
-  approvedInput.checked = !!obs.approved;
-  removeBtn.disabled = approvedInput.checked;
-  approvedInput.addEventListener("change", () => {
-    obs.approved = approvedInput.checked;
-    removeBtn.disabled = approvedInput.checked;
-    scheduleAutosave();
-  });
-
   // Remove button (also deletes this observation's photo files)
+  const removeBtn = node.querySelector('[data-action="remove"]');
   removeBtn.addEventListener("click", async () => {
     const count = obs.photos.length;
     if (count && !window.confirm(`Remove this damage area and its ${count} photo${count === 1 ? "" : "s"}?`)) return;
@@ -744,7 +734,7 @@ function updateViewerControls(list = allPhotos(), index = list.findIndex((e) => 
   el("viewerPrev").disabled = viewer.locked || index <= 0;
   el("viewerNext").disabled = viewer.locked || index < 0 || index >= list.length - 1;
   el("viewerDelete").disabled = viewer.locked;
-  el("lightboxClose").disabled = viewer.locked;
+  el("viewerDone").disabled = viewer.locked;
 }
 
 function stepViewer(delta) {
@@ -771,7 +761,7 @@ async function deleteViewerPhoto() {
   const index = list.findIndex((entry) => entry.photo.id === viewer.id);
   if (index < 0) return;
   const { photo, obs } = list[index];
-  if (!window.confirm(`Delete image ${photo.number}? This can't be undone.`)) return;
+  if (!window.confirm(`Are you sure you want to delete image ${photo.number}? This can't be undone.`)) return;
   const next = list[index + 1] || list[index - 1];
   obs.photos = obs.photos.filter((p) => p.id !== photo.id);
   scheduleAutosave();
@@ -791,7 +781,7 @@ async function deleteViewerPhoto() {
 }
 
 function bindViewer() {
-  el("lightboxClose").addEventListener("click", () => closeViewer());
+  el("viewerDone").addEventListener("click", () => closeViewer());
   el("viewerPrev").addEventListener("click", () => stepViewer(-1));
   el("viewerNext").addEventListener("click", () => stepViewer(1));
   el("viewerDelete").addEventListener("click", deleteViewerPhoto);
@@ -947,7 +937,7 @@ function buildNotesText() {
     `Vehicle: ${vehicleLine || "(not entered)"}${vehicle.vin ? `   VIN: ${vehicle.vin}` : ""}${vehicle.plate ? `   Plate: ${vehicle.plate}` : ""}${vehicle.color ? `   Color: ${vehicle.color}` : ""}`,
   ];
   state.observations.forEach((obs, index) => {
-    lines.push("", `AREA OF DAMAGE ${index + 1}: ${obs.area || "(not selected)"}${obs.approved ? "  [approved]" : ""}`);
+    lines.push("", `AREA OF DAMAGE ${index + 1}: ${obs.area || "(not selected)"}`);
     obs.photos
       .slice()
       .sort(byNumber)
@@ -986,7 +976,6 @@ function buildInspectionJson(exportedAt) {
     observations: state.observations.map((obs) => ({
       id: obs.id,
       area: obs.area,
-      approved: obs.approved,
       overallNote: obs.transcript,
       photos: obs.photos
         .slice()
@@ -1140,12 +1129,12 @@ function sharePart(part) {
   return navigator.share({ files: [file] });
 }
 
-// ---------- Send: the zip is built in the background so Email and Save react instantly ----------
+// ---------- Share: the zip is built in the background so the Share button reacts instantly ----------
 
 let builtPackage = null; // { key, parts } — valid until the job changes
 let buildingPackage = null; // { key, promise }
 let prebuildTimer = null;
-const nextPart = { email: 0, save: 0 }; // jobs over ~15 MB go out as several files; which one is next
+let nextPart = 0; // jobs over ~15 MB go out as several files, one per tap; which one is next
 
 const packageKey = () => state.workfile.modifiedAt || "";
 const readyParts = () => (builtPackage && builtPackage.key === packageKey() ? builtPackage.parts : null);
@@ -1174,12 +1163,10 @@ function schedulePrebuild() {
   prebuildTimer = setTimeout(() => getPackageParts({ quiet: true }).then(refreshSendButtons).catch(() => {}), 4000);
 }
 
-/** For a job that needs several emails, the button says which part is next. */
+/** For a job that needs several files, the button says which part is next. */
 function refreshSendButtons() {
   const parts = readyParts();
-  for (const mode of ["email", "save"]) {
-    el(`${mode}Btn`).querySelector("small").textContent = parts && parts.length > 1 ? `part ${nextPart[mode] + 1} of ${parts.length}` : "";
-  }
+  el("shareBtn").querySelector("small").textContent = parts && parts.length > 1 ? `part ${nextPart + 1} of ${parts.length}` : "";
 }
 
 function refreshSendSummary() {
@@ -1188,7 +1175,7 @@ function refreshSendSummary() {
   line.textContent = "";
   if (builtPackage && builtPackage.key !== packageKey()) {
     builtPackage = null;
-    nextPart.email = nextPart.save = 0;
+    nextPart = 0;
   }
   refreshSendButtons();
   if (!photos.length) {
@@ -1196,33 +1183,34 @@ function refreshSendSummary() {
     return;
   }
   const bytes = photos.reduce((sum, { photo }) => sum + (photo.bytes || 0), 0);
-  const emails = Math.max(1, Math.ceil(bytes / PART_LIMIT_BYTES));
+  const files = Math.max(1, Math.ceil(bytes / PART_LIMIT_BYTES));
   const strong = document.createElement("strong");
   strong.textContent = `${photos.length} photo${photos.length === 1 ? "" : "s"}`;
-  line.append(strong, ` · ${formatBytes(bytes)} · ${emails === 1 ? "1 email" : `${emails} emails`}`);
+  line.append(strong, ` · ${formatBytes(bytes)} · ${files === 1 ? "1 file" : `${files} files`}`);
 
   const { lastExportedAt, modifiedAt } = state.workfile;
   if (lastExportedAt && (!modifiedAt || lastExportedAt >= modifiedAt)) {
     const sent = document.createElement("span");
     sent.className = "is-sent";
-    sent.textContent = ` · ✓ Sent or saved ${new Date(lastExportedAt).toLocaleTimeString([], { timeStyle: "short" })}`;
+    sent.textContent = ` · ✓ Shared ${new Date(lastExportedAt).toLocaleTimeString([], { timeStyle: "short" })}`;
     line.append(sent);
   }
   schedulePrebuild();
 }
 
 /**
- * Share opens the share sheet (Mail, OneDrive, AirDrop, Files…); Save downloads the zip. If the zip is already built (it normally is) the tap acts at once,
- * which the phone requires for the share sheet. A job needing several files sends one per tap.
+ * Share opens the phone's share sheet (Mail, OneDrive, Save to Files, AirDrop…); on a computer it downloads the zip.
+ * If the zip is already built (it normally is) the tap acts at once, which the phone requires for the share sheet.
+ * A job needing several files sends one per tap.
  */
-async function sendReport(mode) {
-  const button = el(`${mode}Btn`);
+async function shareReport() {
+  const button = el("shareBtn");
   const sendOne = async (parts) => {
-    const index = nextPart[mode] % parts.length;
-    if (mode === "email") await sharePart(parts[index]);
+    const index = nextPart % parts.length;
+    if (canShareFiles()) await sharePart(parts[index]);
     else downloadBlob(parts[index].blob, parts[index].name);
     markPartDelivered(index);
-    nextPart[mode] = (index + 1) % parts.length;
+    nextPart = (index + 1) % parts.length;
   };
   try {
     const ready = readyParts();
@@ -1275,7 +1263,7 @@ async function startNewJob() {
   await saveState();
   fillWorkfileFields();
   builtPackage = null;
-  nextPart.email = nextPart.save = 0;
+  nextPart = 0;
   renderObservations();
   addObservation({ silent: true });
   refreshStartedAt();
@@ -1297,20 +1285,62 @@ function addObservation({ silent = false } = {}) {
   }
 }
 
+// ---------- Menu (☰): how-to guide, version, update check ----------
+
+/** The app version is the number in the service worker's cache name, so it can never drift from the code. */
+async function appVersionText() {
+  try {
+    const match = (await caches.keys()).map((key) => /^collision-voice-shell-v(\d+)$/.exec(key)).find(Boolean);
+    return match ? `Version ${match[1]}` : "Version —";
+  } catch {
+    return "Version —";
+  }
+}
+
+function bindMenu() {
+  const menu = el("menu");
+  const button = el("menuBtn");
+  const setOpen = async (open) => {
+    menu.hidden = !open;
+    button.setAttribute("aria-expanded", String(open));
+    if (open) el("appVersion").textContent = await appVersionText();
+  };
+  button.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setOpen(menu.hidden);
+  });
+  document.addEventListener("click", (event) => {
+    if (!menu.hidden && !menu.contains(event.target)) setOpen(false);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !menu.hidden) setOpen(false);
+  });
+  el("updateBtn").addEventListener("click", async () => {
+    setOpen(false);
+    setStatus("Checking for updates…");
+    try {
+      const registration = await navigator.serviceWorker?.getRegistration();
+      await registration?.update();
+      setStatus(registration?.installing || registration?.waiting ? "Updating…" : "You have the latest version");
+    } catch {
+      setStatus("Couldn't check — are you online?");
+    }
+  });
+}
+
 // ---------- Init ----------
 
 async function init() {
   await loadState();
   bindWorkfileFields();
   bindScanButtons();
+  bindMenu();
   renderObservations();
   bindViewer();
 
   el("addObservationBtn").addEventListener("click", () => addObservation());
-  el("emailBtn").addEventListener("click", () => sendReport("email"));
-  el("saveBtn").addEventListener("click", () => sendReport("save"));
-  // Computers have no share sheet, so Share only appears where the phone can offer it.
-  if (!canShareFiles()) el("emailBtn").hidden = true;
+  el("shareBtn").addEventListener("click", shareReport);
+  if (!canShareFiles()) el("shareBtn").querySelector(".send-btn__text").firstChild.textContent = "Download"; // computers have no share sheet
   el("newJobBtn").addEventListener("click", startNewJob);
 
   if (state.observations.length === 0) {

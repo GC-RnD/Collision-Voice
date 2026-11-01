@@ -20,6 +20,14 @@
     <div class="app-header__inner">
       <img class="app-header__logo" src="icons/Collision-Voice.png" alt="Collision Voice" />
       <span class="status-inline" id="syncStatus" role="status" aria-live="polite"></span>
+      <button type="button" class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false" aria-controls="menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
+      </button>
+      <div class="menu" id="menu" hidden>
+        <a class="menu__item" href="docs/Collision-Voice-Quick-Start-Guide.pdf" target="_blank" rel="noopener">How to use this app<small>Quick Start Guide (PDF)</small></a>
+        <button type="button" class="menu__item" id="updateBtn">Check for updates</button>
+        <p class="menu__about" id="appVersion">Version —</p>
+      </div>
     </div>
   </header>
 
@@ -111,10 +119,6 @@
               <select data-field="area" aria-label="Vehicle area of damage"></select>
             </label>
             <div class="observation__actions">
-              <label class="observation__approve">
-                <input type="checkbox" data-field="approved" />
-                Approved
-              </label>
               <button type="button" class="btn btn--ghost btn--danger" data-action="remove">Remove</button>
             </div>
           </header>
@@ -155,13 +159,9 @@
       </details>
 
       <div class="send-bar">
-        <button type="button" class="send-btn" id="emailBtn">
+        <button type="button" class="send-btn" id="shareBtn">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="m16 6-4-4-4 4"/><path d="M12 2v13"/></svg>
           <span class="send-btn__text">Share<small></small></span>
-        </button>
-        <button type="button" class="send-btn" id="saveBtn">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
-          <span class="send-btn__text">Save<small></small></span>
         </button>
         <button type="button" class="send-btn" id="uploadBtn" disabled title="Coming later">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 13v8"/><path d="M4 14.9A7 7 0 1 1 15.7 8h1.8a4.5 4.5 0 0 1 2.5 8.2"/><path d="m8 17 4-4 4 4"/></svg>
@@ -178,26 +178,28 @@
   </main>
 
   <div class="viewer" id="photoLightbox" hidden role="dialog" aria-modal="true" aria-label="Photo viewer">
-    <div class="viewer__top">
-      <div class="viewer__title" id="viewerTitle"></div>
-      <button type="button" class="viewer__close" id="lightboxClose" aria-label="Close photo">✕</button>
-    </div>
-    <div class="viewer__stage">
-      <img class="viewer__img" id="lightboxImg" alt="" />
-    </div>
-    <div class="viewer__panel">
-      <label class="field viewer__note">
-        <span>Note for this image</span>
-        <textarea id="viewerNote" rows="3" placeholder="Tap Dictate and describe this photo, or type here"></textarea>
-      </label>
-      <div class="viewer__actions">
-        <button type="button" class="btn btn--secondary" id="viewerPrev">‹ Prev</button>
-        <button type="button" class="btn btn--record" id="viewerDictate">
-          <span class="record-dot"></span>
-          <span id="viewerDictateLabel">Dictate</span>
-        </button>
-        <button type="button" class="btn btn--secondary" id="viewerNext">Next ›</button>
-        <button type="button" class="btn btn--danger-solid" id="viewerDelete">Delete</button>
+    <div class="viewer__inner">
+      <div class="viewer__top">
+        <div class="viewer__title" id="viewerTitle"></div>
+      </div>
+      <div class="viewer__stage">
+        <img class="viewer__img" id="lightboxImg" alt="" />
+      </div>
+      <div class="viewer__panel">
+        <div class="viewer__actions">
+          <button type="button" class="btn btn--record" id="viewerDictate">
+            <span class="record-dot"></span>
+            <span id="viewerDictateLabel">Dictate</span>
+          </button>
+          <button type="button" class="btn btn--secondary" id="viewerPrev">‹ Prev</button>
+          <button type="button" class="btn btn--secondary" id="viewerNext">Next ›</button>
+          <button type="button" class="btn btn--done" id="viewerDone">Done</button>
+          <button type="button" class="btn btn--danger-solid" id="viewerDelete">Delete</button>
+        </div>
+        <label class="field viewer__note">
+          <span>Note for this image</span>
+          <textarea id="viewerNote" rows="3" placeholder="Tap Dictate and describe this photo, or type here"></textarea>
+        </label>
       </div>
     </div>
   </div>
