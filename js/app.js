@@ -1100,12 +1100,7 @@ async function buildPackages(quiet = false) {
     const zipEntries = [...shared, ...groups[index].map((file) => ({ name: file.name, data: file.blob }))];
     const blob = await Zip.build(zipEntries, createdAt);
     const suffix = groups.length > 1 ? `_part-${index + 1}-of-${groups.length}` : "";
-    parts.push({
-      name: `${base}${suffix}.zip`,
-      label: groups.length > 1 ? `Part ${index + 1} of ${groups.length}` : "Package",
-      blob,
-      photoCount: groups[index].length,
-    });
+    parts.push({ name: `${base}${suffix}.zip`, blob });
   }
   packageState.builtAt = createdAt.toISOString();
   packageState.total = parts.length;
@@ -1130,28 +1125,6 @@ function markPartDelivered(index) {
   });
 }
 
-/** Email subject/body so the receiver can tell at a glance which job a zip belongs to. */
-function shareSubject(part) {
-  const { assignmentId, customerName, inspectionType } = state.workfile;
-  const vehicle = [state.vehicle.year, state.vehicle.make, state.vehicle.model].filter(Boolean).join(" ");
-  const label = [assignmentId, customerName, vehicle].filter(Boolean).join(" – ") || "Inspection";
-  const kind = inspectionTypeLabel(inspectionType).replace(/ \(.*\)$/, "");
-  return part.label === "Package" ? `${kind}: ${label}` : `${kind}: ${label} (${part.label})`;
-}
-
-function shareBody(part) {
-  const { assignmentId, customerName, inspectorName, startedAt, inspectionType } = state.workfile;
-  const lines = [
-    `Inspection type: ${inspectionTypeLabel(inspectionType)}`,
-    `Claim/assignment: ${assignmentId || "(not entered)"}`,
-    `Customer: ${customerName || "(not entered)"}`,
-    `Inspector: ${inspectorName || "(not entered)"}`,
-    startedAt ? `Inspection started: ${formatDateTime(startedAt)}` : "",
-    `${part.label}: ${part.photoCount} photo${part.photoCount === 1 ? "" : "s"}. Open notes.txt for the notes with image numbers.`,
-  ];
-  return lines.filter(Boolean).join("\n");
-}
-
 const canShareFiles = () => {
   try {
     return !!(navigator.canShare && navigator.canShare({ files: [new File(["x"], "a.zip", { type: "application/zip" })] }));
@@ -1160,10 +1133,11 @@ const canShareFiles = () => {
   }
 };
 
-/** Opens the share sheet (Mail, Messages, AirDrop…) for one zip. */
+/** Opens the share sheet (Mail, OneDrive, AirDrop, Files…) for one zip. Only the file is sent: with extra text,
+ *  some destinations (OneDrive) save that text instead of the zip. */
 function sharePart(part) {
   const file = new File([part.blob], part.name, { type: "application/zip" });
-  return navigator.share({ files: [file], title: shareSubject(part), text: shareBody(part) });
+  return navigator.share({ files: [file] });
 }
 
 // ---------- Send: the zip is built in the background so Email and Save react instantly ----------
