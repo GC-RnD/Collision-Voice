@@ -295,6 +295,34 @@ function fillWorkfileFields() {
   }
 }
 
+/**
+ * Keeps what's on screen and what's saved in step. iOS can restore or blank form fields on its own when the
+ * app is reopened, so after a wake-up the saved job wins; text the browser filled in without an input event is saved.
+ */
+function reconcileFields() {
+  const groups = [
+    [workfileFieldIds, state.workfile],
+    [vehicleFieldIds, state.vehicle],
+  ];
+  let changed = false;
+  for (const [ids, data] of groups) {
+    for (const [key, id] of Object.entries(ids)) {
+      const field = el(id);
+      if (document.activeElement === field) continue;
+      const saved = data[key] ?? "";
+      if (field.value === saved) continue;
+      if (saved) {
+        if (field.tagName === "SELECT" && ![...field.options].some((o) => o.value === saved)) field.add(new Option(saved, saved));
+        field.value = saved;
+      } else if (field.value) {
+        data[key] = field.value;
+        changed = true;
+      }
+    }
+  }
+  if (changed) scheduleAutosave();
+}
+
 function bindWorkfileFields() {
   populateVehicleSelects();
   const typeSelect = el("inspectionType");
@@ -1275,13 +1303,22 @@ async function init() {
   Store.requestPersistence();
 
   // Save right away if the app is being backgrounded with changes still waiting for the autosave timer.
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden && saveTimer) {
+  const flushPendingSave = () => {
+    if (saveTimer) {
       clearTimeout(saveTimer);
       saveTimer = null;
       saveState();
     }
+  };
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) flushPendingSave();
+    else reconcileFields();
   });
+  window.addEventListener("pagehide", flushPendingSave);
+  window.addEventListener("pageshow", reconcileFields);
+  // After the browser's own form restore (which can happen after our first fill).
+  if (document.readyState === "complete") setTimeout(reconcileFields, 300);
+  else window.addEventListener("load", () => setTimeout(reconcileFields, 300));
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch((err) => console.warn("SW registration failed", err));
