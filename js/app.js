@@ -828,7 +828,8 @@ function bindViewer() {
 // ---------- Dictation: tap, talk, tap — the words appear. No audio is kept. ----------
 
 // The microphone is opened once and reused for a few minutes, so the phone or browser asks for permission once,
-// not on every tap. It is released after a quiet spell and whenever the app goes to the background.
+// not on every tap. It is released after a quiet spell. (The phone itself pauses capture while the app is in the
+// background; the same open microphone is picked up again when you return, which avoids a second permission prompt.)
 const MIC_IDLE_MS = 3 * 60 * 1000;
 let micStream = null;
 let micIdleTimer = null;
@@ -839,9 +840,28 @@ function releaseMic() {
   micStream = null;
 }
 
+/** Resolves true once the track is delivering audio, or false if it stays paused/ended (the caller then re-opens it). */
+function micTrackReady(track) {
+  if (track.readyState !== "live") return Promise.resolve(false);
+  if (!track.muted) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const done = (ok) => {
+      track.removeEventListener("unmute", onUnmute);
+      clearTimeout(timer);
+      resolve(ok);
+    };
+    const onUnmute = () => done(true);
+    const timer = setTimeout(() => done(false), 1200);
+    track.addEventListener("unmute", onUnmute);
+  });
+}
+
 async function getMicStream() {
   clearTimeout(micIdleTimer);
-  if (micStream && !micStream.getAudioTracks().every((track) => track.readyState === "live" && !track.muted)) releaseMic();
+  if (micStream) {
+    const ready = await Promise.all(micStream.getAudioTracks().map(micTrackReady));
+    if (!ready.length || !ready.every(Boolean)) releaseMic();
+  }
   if (!micStream) micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
   return micStream;
 }
@@ -1397,10 +1417,8 @@ async function init() {
     }
   };
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
-      flushPendingSave();
-      releaseMic(); // never keep the microphone open in the background
-    } else reconcileFields();
+    if (document.hidden) flushPendingSave();
+    else reconcileFields();
   });
   window.addEventListener("pagehide", flushPendingSave);
   window.addEventListener("pageshow", reconcileFields);
