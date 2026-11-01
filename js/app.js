@@ -1179,6 +1179,11 @@ const canShareFiles = () => {
   }
 };
 
+/** Phones and tablets use the share sheet. Computers download the zip instead: the desktop share dialog is awkward
+ *  for a large file and isn't reliable everywhere. */
+const useShareSheet = () =>
+  canShareFiles() && !!(navigator.userAgentData?.mobile || navigator.maxTouchPoints > 1 || /Android|iPhone|iPad/.test(navigator.userAgent));
+
 /** Opens the share sheet (Mail, OneDrive, AirDrop, Files…) for one zip. Only the file is sent: with extra text,
  *  some destinations (OneDrive) save that text instead of the zip. */
 function sharePart(part) {
@@ -1262,23 +1267,33 @@ function refreshSendSummary() {
  */
 async function shareReport() {
   const button = el("shareBtn");
-  const sendOne = async (parts) => {
+  const sendOne = async (parts, waited) => {
     const index = nextPart % parts.length;
-    if (canShareFiles()) await sharePart(parts[index]);
-    else downloadBlob(parts[index].blob, parts[index].name);
+    const part = parts[index];
+    if (useShareSheet()) {
+      try {
+        await sharePart(part);
+      } catch (err) {
+        if (err?.name === "AbortError") throw err; // closed the share sheet
+        if (err?.name === "NotAllowedError" && waited) throw err; // the phone wants a fresh tap after a wait
+        downloadBlob(part.blob, part.name); // sharing isn't working here, so save the file instead
+      }
+    } else {
+      downloadBlob(part.blob, part.name);
+    }
     markPartDelivered(index);
     nextPart = (index + 1) % parts.length;
   };
   try {
     const ready = readyParts();
     if (ready) {
-      await sendOne(ready);
+      await sendOne(ready, false);
       return;
     }
     button.disabled = true;
     button.querySelector("small").textContent = "preparing…";
     const parts = await getPackageParts();
-    if (parts.length) await sendOne(parts);
+    if (parts.length) await sendOne(parts, true);
   } catch (err) {
     if (err && err.name === "AbortError") return; // closed the share sheet
     if (err && err.name === "NotAllowedError") setStatus("Ready — tap Share again"); // the phone wants a fresh tap after a wait
@@ -1397,7 +1412,7 @@ async function init() {
 
   el("addObservationBtn").addEventListener("click", () => addObservation());
   el("shareBtn").addEventListener("click", shareReport);
-  if (!canShareFiles()) el("shareBtn").querySelector(".send-btn__text").firstChild.textContent = "Download"; // computers have no share sheet
+  if (!useShareSheet()) el("shareBtn").querySelector(".send-btn__text").firstChild.textContent = "Download"; // computers save the zip instead
   el("newJobBtn").addEventListener("click", startNewJob);
 
   if (state.observations.length === 0) {
