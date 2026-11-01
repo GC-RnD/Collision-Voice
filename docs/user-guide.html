@@ -45,9 +45,8 @@
   .appbar { display: none; }
   @media screen {
     body { max-width: 860px; margin: 0 auto; padding: 0 1rem 2rem; font-size: 16px; }
-    .appbar { display: flex; position: sticky; top: 0; z-index: 5; background: #fff; border-bottom: 3px solid var(--orange); margin: 0 -1rem 1rem; padding: 0.6rem 1rem; }
-    .appbar a, .backlink { display: inline-block; font-weight: 700; color: #fff; background: var(--navy); border-radius: 10px; padding: 0.6rem 1rem; text-decoration: none; }
-    .backlink { margin-top: 1.5rem; }
+    .appbar { display: flex; position: sticky; top: 0; z-index: 5; background: #fff; border-bottom: 3px solid var(--orange); margin: 0 -1rem 1rem; padding: 0.4rem 1rem; }
+    .appbar a { display: inline-block; font-size: 0.85rem; font-weight: 600; color: var(--navy); background: #fff; border: 1px solid #b8c4d0; border-radius: 8px; padding: 0.3rem 0.7rem; text-decoration: none; }
     .pagebreak { break-before: auto; }
   }
   @media screen and (max-width: 640px) {
@@ -58,7 +57,7 @@
     td, th { padding: 0.4rem; }
     h1 { font-size: 1.7rem; }
   }
-  @media print { .backlink { display: none; } }
+  @media print { .appbar { display: none; } }
 </style>
 </head>
 <body>
@@ -217,7 +216,6 @@
 </ul>
 
 <p class="small" style="margin-top:0.2in">Collision Voice Quick Start Guide · November 2026 · This guide describes the app as of this date; some features are still being added.</p>
-<a class="backlink" href="../index.html">← Back to the app</a>
 
 </body>
 </html>
