@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Collision Voice — Quick Start Guide</title>
 <style>
   @page { size: Letter; margin: 0.6in 0.7in 0.7in; }
@@ -39,9 +40,30 @@
   .pagebreak { break-before: page; }
   .small { font-size: 9pt; color: var(--muted); }
   code { font-family: Consolas, monospace; font-size: 9.5pt; background: var(--soft); padding: 0 0.03in; border-radius: 3px; }
+
+  /* On screen (inside the app): a back bar, and a layout that fits a phone. Hidden when printed to PDF. */
+  .appbar { display: none; }
+  @media screen {
+    body { max-width: 860px; margin: 0 auto; padding: 0 1rem 2rem; font-size: 16px; }
+    .appbar { display: flex; position: sticky; top: 0; z-index: 5; background: #fff; border-bottom: 3px solid var(--orange); margin: 0 -1rem 1rem; padding: 0.6rem 1rem; }
+    .appbar a, .backlink { display: inline-block; font-weight: 700; color: #fff; background: var(--navy); border-radius: 10px; padding: 0.6rem 1rem; text-decoration: none; }
+    .backlink { margin-top: 1.5rem; }
+    .pagebreak { break-before: auto; }
+  }
+  @media screen and (max-width: 640px) {
+    .step { flex-direction: column; }
+    .step__img, .step__img--narrow { width: 70%; align-self: center; }
+    .strip { flex-wrap: wrap; }
+    .strip div { flex: 1 1 30%; }
+    td, th { padding: 0.4rem; }
+    h1 { font-size: 1.7rem; }
+  }
+  @media print { .backlink { display: none; } }
 </style>
 </head>
 <body>
+
+<nav class="appbar"><a href="../index.html">← Back to the app</a></nav>
 
 <div class="cover">
   <img src="../icons/Collision-Voice.png" alt="Collision Voice" />
@@ -195,6 +217,7 @@
 </ul>
 
 <p class="small" style="margin-top:0.2in">Collision Voice Quick Start Guide · November 2026 · This guide describes the app as of this date; some features are still being added.</p>
+<a class="backlink" href="../index.html">← Back to the app</a>
 
 </body>
 </html>
